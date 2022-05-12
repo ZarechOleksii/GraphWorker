@@ -1,4 +1,6 @@
 ﻿
+document.getElementById("cancel_button").disabled = true;
+
 let data = {
     nodes: [
         {

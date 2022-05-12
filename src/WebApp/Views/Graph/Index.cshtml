@@ -14,14 +14,15 @@
         </svg>
     </div>
     <div class="func-container">
+        <button id="cancel_button" class="func-button" onclick="cancel_button()">Cancel</button>
         <div class="func-subtitle">Graph</div>
         <button class="func-button" onclick="add_vertice()">Add vertex</button>
-        <button class="func-button" onclick="add_connection()">Add connection</button>
-        <button class="func-button" onclick="">Remove vertex</button>
-        <button class="func-button" onclick="">Remove connection</button>
+        <button class="func-button" onclick="add_connection(this)">Add connection</button>
+        <button class="func-button" onclick="" style="background-color:red">Remove vertex</button>
+        <button class="func-button" onclick="" style="background-color:red">Remove connection</button>
         <button class="func-button" onclick="">Adjacency matrix</button>
-        <button class="func-button" onclick="">Clear graph</button>
-        <button class="func-button" onclick="">Save</button>
+        <button class="func-button" onclick="" style="background-color:red">Clear graph</button>
+        <button class="func-button" onclick="" style="background-color:red">Save</button>
         <div class="func-subtitle">Shortest path algorithms</div>
         <button class="func-button" onclick="">Dijkstra's algorithm</button>
         <button class="func-button" onclick="">Floyd's algorithm</button>

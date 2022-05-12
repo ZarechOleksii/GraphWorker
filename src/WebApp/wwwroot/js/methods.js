@@ -63,8 +63,10 @@ function add_vertice()
     simulation.alpha(0.1).restart()
 }
 
-async function add_connection() {
+async function add_connection(this_button) {
+    this_button.style.backgroundColor = "green";
     clear_selected();
+    document.getElementById("cancel_button").disabled = false;
     enable_selection();
 
     const someTimeoutAction = () => {
@@ -83,6 +85,8 @@ async function add_connection() {
         }
     }
     while (!cancel)
+    clear_selected()
+    this_button.style.backgroundColor = "white";
 }
 
 function add_conn_when_two_selected() {
@@ -97,6 +101,10 @@ function add_connection_logic() {
     let first_id = selected[0];
     let second_id = selected[1];
     let weight = 30;
+
+    if (data.links.find(q => q.source.id == first_id && q.target.id == second_id) != null) {
+        return;
+    }
 
     simulation.stop();
 
@@ -150,6 +158,13 @@ function add_connection_logic() {
         .attr("r", r)
         .attr("class", "circle");
 
+    nodes
+        .filter(function (d) {
+            return d.fx != null
+        })
+        .select("circle")
+        .classed("fixed", true);
+
     link_labels = svg
         .selectAll("link-text")
         .data(data.links)
@@ -171,12 +186,17 @@ function add_connection_logic() {
         .attr("text-anchor", "middle")
         .attr("y", 5)
         .merge(labels);
-    clear_selected()
     simulation.nodes(data.nodes)
     simulation.alpha(0.1).restart()
 }
 
+function cancel_button() {
+    cancel = true;
+}
+
 function clear_selected() {
+    document.getElementById("cancel_button").disabled = true;
+    cancel = false;
     circles
         .classed("selected", false);
     selected = [];
