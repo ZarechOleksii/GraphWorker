@@ -1,0 +1,39 @@
+﻿
+.general-container {
+    display: flex;
+    height: 75vh;
+}
+
+.graph-container{
+    width: 65%;
+    border: 1px solid black;
+    position: relative;
+    overflow: hidden;
+}
+
+.func-container {
+    width: 35%;
+    margin-left: 1vh;
+    border: 1px solid black;
+    overflow-y: scroll;
+    background-color: lightgray;
+}
+
+.func-button{
+    display:block;
+    margin: auto;
+    line-height: 30px;
+    width: 94%;
+    border: 1px solid gray;
+    border-radius: 20px;
+    text-align:center;
+    margin-top: 5px;
+}
+
+.func-subtitle{
+    margin-top: 10px;
+    font-size: 30px;
+    line-height: 30px;
+    text-align: center;
+    margin-bottom: 10px;
+}
