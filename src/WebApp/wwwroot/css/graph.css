@@ -26,3 +26,7 @@
 .circle.selected{
     fill: darkgoldenrod;
 }
+
+.circle.result{
+    fill: crimson;
+}
