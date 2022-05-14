@@ -14,18 +14,23 @@
         </svg>
     </div>
     <div class="func-container">
-        <button id="cancel_button" class="func-button" onclick="cancel_button()">Cancel</button>
-        <div class="func-subtitle">Graph</div>
+        <button id="cancel_button" class="func-button" onclick="cancel_button()" disabled>Cancel</button>
+        <div class="func-subtitle">Graph control</div>
         <button class="func-button" onclick="add_vertice()">Add vertex</button>
         <button class="func-button" onclick="add_connection(this)">Add connection</button>
-        <button class="func-button" onclick="" style="background-color:black">Remove vertex</button>
-        <button class="func-button" onclick="" style="background-color:black">Remove connection</button>
-        <button class="func-button" onclick="">Adjacency matrix</button>
-        <button class="func-button" onclick="" style="background-color:black">Clear graph</button>
-        <button class="func-button" onclick="" style="background-color:black">Save</button>
+        <button class="func-button" onclick="" style="display:none">Remove vertex</button>
+        <button class="func-button" onclick="" style="display:none">Remove connection</button>
+        <button class="func-button" onclick="" style="display:none">Clear graph</button>
+        <button class="func-button" onclick="" style="display:none">Save</button>
+        <div class="func-subtitle">Graph info</div>
+        <button class="func-button" onclick="adjacency_matrix_info()">Adjacency matrix</button>
+        <button class="func-button" onclick="incidence_matrix_info()">Incidence matrix</button>
+        <button class="func-button" onclick="weighted_matrix_info()">Weighted matrix</button>
+        <button class="func-button" onclick="adjacency_lists_info()">Adjacency lists</button>
+        <button class="func-button" onclick="edges_list_info()">Edges list</button>
         <div class="func-subtitle">Shortest path algorithms</div>
         <button class="func-button" onclick="dijkstra(this)">Dijkstra's algorithm</button>
-        <button class="func-button" onclick="">Floyd's algorithm</button>
+        <button class="func-button" onclick="floyd()">Floyd's algorithm</button>
         <div class="func-subtitle">Search methods</div>
         <button class="func-button" onclick="">Depth-first search</button>
         <button class="func-button" onclick="">Breadth-first search</button>

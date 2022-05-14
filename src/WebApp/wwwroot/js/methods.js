@@ -1,7 +1,9 @@
-﻿let cancel = false;
+﻿// #region vars
+let cancel = false;
 let selected = [];
+// #endregion
 
-
+// #region graph controll
 function add_vertice() {
     let id = 0;
     if (data.nodes.length > 0) {
@@ -65,7 +67,7 @@ function add_vertice() {
 }
 
 async function add_connection(this_button) {
-    this_button.style.backgroundColor = "green";
+    this_button.style.backgroundColor = "lightgreen";
     clear_selected();
     clear_result();
     document.getElementById("cancel_button").disabled = false;
@@ -75,7 +77,7 @@ async function add_connection(this_button) {
     const someTimeoutAction = () => {
         return new Promise((resolve) => {
             setTimeout(() => {
-                resolve(add_conn_when_two_selected);
+                resolve(execute_when_two_selected);
             }, 1000);
         });
     };
@@ -83,7 +85,7 @@ async function add_connection(this_button) {
     do {
         let status = await someTimeoutAction();
 
-        if (status() === true) {
+        if (status(add_connection_logic) === true) {
             break;
         }
     }
@@ -92,141 +94,7 @@ async function add_connection(this_button) {
     this_button.style.backgroundColor = "white";
 }
 
-async function dijkstra(this_button) {
-    this_button.style.backgroundColor = "green";
-    clear_selected();
-    clear_result();
-    document.getElementById("cancel_button").disabled = false;
-    enable_selection();
-    document.getElementById("status").innerHTML = `<b><p>Select two points (shortest path from first to second).</b></p>`;
-
-    const someTimeoutAction = () => {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                resolve(dijkstra_when_two_selected);
-            }, 1000);
-        });
-    };
-
-    do {
-        let status = await someTimeoutAction();
-
-        if (status() === true) {
-            break;
-        }
-    }
-    while (!cancel)
-    clear_selected()
-    this_button.style.backgroundColor = "white";
-}
-
-function add_conn_when_two_selected() {
-    if (selected.length === 2) {
-        add_connection_logic();
-        return true;
-    }
-    return false;
-}
-
-function dijkstra_when_two_selected() {
-    if (selected.length === 2) {
-        dijkstra_logic();
-        return true;
-    }
-    return false;
-}
-
-function dijkstra_logic() {
-    let first_id = selected[0];
-    let second_id = selected[1];
-
-    let dataAlgo = data.nodes.map(node => ({
-        id: node.id,
-        passed: false,
-        weight: Infinity,
-        name: node.name,
-        connections: data.links.filter(link => link.source.id == node.id),
-        pathing: []
-    }));
-
-    let first = dataAlgo.find(node => node.id == first_id);
-    let current = first;
-    current.weight = 0;
-
-    let text = `<b>Algorithm steps:</b><p>Set weight of all points to infinity, starting from point ${current.id}, weight 0.</p><ol>`;
-
-    while (current != null) {
-        text += `<li>Setting new weights from point ${current.id}.<ol>`;
-
-        current.connections.forEach(function (con) {
-            let secondPoint = dataAlgo.find(node => node.id == con.target.id);
-
-            if (!secondPoint.passed) {
-                if (secondPoint.weight > current.weight + con.weight) {
-                    text += `<li>Setting new weight for ${secondPoint.id}: from ${secondPoint.weight} to ${current.weight} + ${con.weight} = ${current.weight + con.weight}</li>`
-                    secondPoint.weight = current.weight + con.weight;
-                    secondPoint.pathing = Array.from(current.pathing);
-                    secondPoint.pathing.push(current.id);
-                }
-            }
-        });
-
-        current.passed = true;
-        let filtered = dataAlgo
-            .filter(q => !q.passed && q.weight != Infinity);
-
-        if (filtered.length > 0) {
-            current = filtered.reduce((first, second) => first.weight > second.weight ? second : first);
-            text += `</ol><p>New minimal point is ${current.id}, weight ${current.weight}.</p></li>`;
-        }
-        else {
-            text += "</ol></li></ol><p>All available points are passed</p>";
-            current = null;
-        }
-    }
-
-    let toWhere = dataAlgo.find(node => node.id == second_id);
-    toWhere.pathing.push(toWhere.id);
-
-    if (toWhere.weight != Infinity) {
-        let currWeight = 0;
-
-        text += "<p>Entire path summary:</p><ol>";
-        for (let i = 0; i < toWhere.pathing.length - 1; i++) {
-            let conn = data.links.find(link => link.source.id == toWhere.pathing[i] && link.target.id == toWhere.pathing[i + 1]);
-            text += `<li>From ${toWhere.pathing[i]} to ${toWhere.pathing[i + 1]}: ${currWeight} + ${conn.weight} = ${currWeight += conn.weight}</li>`;
-        }
-        text += "</ol>";
-        text = `<p><b>Shortest path from vertex ${first.id} to vertex ${toWhere.id} is ${toWhere.weight} units.</b></p>` + text;
-        set_status(text);
-
-        nodes
-            .filter(function (d) {
-                return toWhere.pathing.includes(d.id);
-            })
-            .select("circle")
-            .classed("result", true);
-
-        lines
-            .filter(function (d) {
-                for (let i = 0; i < toWhere.pathing.length - 1; i++) {
-                    if (d.source.id == toWhere.pathing[i] && d.target.id == toWhere.pathing[i + 1]) {
-                        return true;
-                    }
-                }
-                return false;
-            })
-            .style("stroke", "red");
-    }
-    else {
-        text = `<p><b>There is no way to get from vertex ${first.id} to vertex ${toWhere.id}.</b></p>` + text;
-        set_status(text);
-    }
-}
-
-function add_connection_logic() {
-    let first_id = selected[0];
-    let second_id = selected[1];
+function add_connection_logic(first_id, second_id) {
     let weight = 30;
 
     if (data.links.find(q => q.source.id == first_id && q.target.id == second_id) != null) {
@@ -316,7 +184,326 @@ function add_connection_logic() {
         .merge(labels);
     simulation.nodes(data.nodes)
     simulation.alpha(0.1).restart()
-    document.getElementById("status").innerHTML = `<b><p>Successfully connected ${first_id} to ${second_id}.</b ></p>`;
+    set_status(`<b><p>Successfully connected ${first_id} to ${second_id}.</b ></p>`);
+}
+// #endregion
+
+// #region graph info
+function adjacency_matrix_info() {
+    let sorted_copy = [...data.nodes].sort((a, b) => a.id - b.id);
+    const size = sorted_copy.length;
+    let matrix = get_weighted_matrix(sorted_copy);
+
+    for (let i = 0; i < size; i++) {
+        for (let j = 0; j < size; j++) {
+            if (matrix[i][j] == Infinity || matrix[i][j] == 0) {
+                matrix[i][j] = 0;
+            }
+            else {
+                matrix[i][j] = 1;
+            }
+        }
+    }
+
+    set_status("<p><b>Adjacency matrix:</b></p>" + matrix_to_table(sorted_copy, matrix));
+}
+
+function incidence_matrix_info() {
+    let sorted_nodes_copy = [...data.nodes].sort((a, b) => a.id - b.id);
+    let sorted_links_copy = [...data.links].sort((a, b) => {
+        if (a.source.id != b.source.id)
+            return a.source.id - b.source.id;
+        return a.target.id - b.target.id;
+    });
+
+    let matrix = new Array(sorted_nodes_copy.length);
+
+    for (let i = 0; i < sorted_nodes_copy.length; i++) {
+        let vector = new Array(sorted_links_copy.length);
+        vector.fill(0);
+        matrix[i] = vector;
+    }
+
+    for (let i = 0; i < sorted_nodes_copy.length; i++) {
+        for (let j = 0; j < sorted_links_copy.length; j++) {
+            if (sorted_links_copy[j].source.id == sorted_nodes_copy[i].id) {
+                matrix[i][j] = -1;
+            }
+            else if (sorted_links_copy[j].target.id == sorted_nodes_copy[i].id) {
+                matrix[i][j] = 1;
+            }
+        }
+    }
+
+    let result = "<p><b>Incidence matrix:</b></p><table class=\"matrix-table\">";
+
+    for (let i = 0; i < matrix.length; i++) {
+        result += `<tr><th scope="row">${sorted_nodes_copy[i].id}</th>`;
+
+        for (let j = 0; j < matrix[i].length; j++) {
+            result += `<td>${matrix[i][j]}</td>`
+        }
+
+        result += "</tr>";
+    }
+    result += "</table>"
+
+    set_status(result);
+}
+
+function weighted_matrix_info() {
+    let sorted_copy = [...data.nodes].sort((a, b) => a.id - b.id);
+    let matrix = get_weighted_matrix(sorted_copy);
+    set_status("<p><b>Weighted matrix:</b></p>" + matrix_to_table(sorted_copy, matrix));
+}
+
+function adjacency_lists_info() {
+    let result = "<p><b>Adjacency lists:</b></p>";
+    let sorted_nodes_copy = [...data.nodes].sort((a, b) => a.id - b.id);
+    let sorted_links_copy = [...data.links].sort((a, b) => {
+        if (a.source.id != b.source.id)
+            return a.source.id - b.source.id;
+        return a.target.id - b.target.id;
+    });
+
+    for (let i = 0; i < sorted_nodes_copy.length; i++) {
+        result += "<div class=\"list\">";
+        result += `<div class="smallbox">${sorted_nodes_copy[i].id}</div>`;
+
+        sorted_links_copy
+            .filter(q => q.source.id == sorted_nodes_copy[i].id)
+            .forEach(q => {
+                result += `<img src="/images/svg/arrow-right.svg" alt="arrow" style="width:60px"/><div class="microbox">ID:${q.target.id}</div><div class="microbox">${q.weight}</div>`;
+            });
+
+        result += "</div>";
+    };
+
+    set_status(result);
+}
+
+function edges_list_info() {
+    let sorted_links_copy = [...data.links].sort((a, b) => {
+        if (a.source.id != b.source.id)
+            return a.source.id - b.source.id;
+        return a.target.id - b.target.id;
+    });
+
+    let text = "<p><b>Edges list:</b></p><table class=\"matrix-table\"><tr><th>From</th><th>To</th><th>Weight</th></tr>";
+
+    sorted_links_copy.forEach(q => {
+        text += `<tr><td>${q.source.id}</td><td>${q.target.id}</td><td>${q.weight}</td></tr>`;
+    });
+    text += "</table>";
+
+    set_status(text);
+}
+// #endregion
+
+// #region shortest path
+async function dijkstra(this_button) {
+    this_button.style.backgroundColor = "lightgreen";
+    clear_selected();
+    clear_result();
+    document.getElementById("cancel_button").disabled = false;
+    enable_selection();
+    document.getElementById("status").innerHTML = `<b><p>Select two points (shortest path from first to second).</b></p>`;
+
+    const someTimeoutAction = () => {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                resolve(execute_when_two_selected);
+            }, 1000);
+        });
+    };
+
+    do {
+        let status = await someTimeoutAction();
+
+        if (status(dijkstra_logic) === true) {
+            break;
+        }
+    }
+    while (!cancel)
+    clear_selected()
+    this_button.style.backgroundColor = "white";
+}
+
+function dijkstra_logic(first_id, second_id) {
+
+    let dataAlgo = data.nodes.map(node => ({
+        id: node.id,
+        passed: false,
+        weight: Infinity,
+        name: node.name,
+        connections: data.links.filter(link => link.source.id == node.id),
+        pathing: []
+    }));
+
+    let first = dataAlgo.find(node => node.id == first_id);
+    let current = first;
+    current.weight = 0;
+
+    let text = `<b>Algorithm steps:</b><p>Set weight of all points to infinity, starting from point ${current.id}, weight 0.</p><ol>`;
+
+    while (current != null) {
+        text += `<li>Setting new weights from point ${current.id}.<ol>`;
+
+        current.connections.forEach(function (con) {
+            let secondPoint = dataAlgo.find(node => node.id == con.target.id);
+
+            if (!secondPoint.passed) {
+                if (secondPoint.weight > current.weight + con.weight) {
+                    text += `<li>Setting new weight for ${secondPoint.id}: from ${secondPoint.weight} to ${current.weight} + ${con.weight} = ${current.weight + con.weight}</li>`
+                    secondPoint.weight = current.weight + con.weight;
+                    secondPoint.pathing = Array.from(current.pathing);
+                    secondPoint.pathing.push(current.id);
+                }
+            }
+        });
+
+        current.passed = true;
+        let filtered = dataAlgo
+            .filter(q => !q.passed && q.weight != Infinity);
+
+        if (filtered.length > 0) {
+            current = filtered.reduce((first, second) => first.weight > second.weight ? second : first);
+            text += `</ol><p>New minimal point is ${current.id}, weight ${current.weight}.</p></li>`;
+        }
+        else {
+            text += "</ol></li></ol><p>All available points are passed</p>";
+            current = null;
+        }
+    }
+
+    let toWhere = dataAlgo.find(node => node.id == second_id);
+    toWhere.pathing.push(toWhere.id);
+
+    if (toWhere.weight != Infinity) {
+        let currWeight = 0;
+
+        text += "<p>Entire path summary:</p><ol>";
+        for (let i = 0; i < toWhere.pathing.length - 1; i++) {
+            let conn = data.links.find(link => link.source.id == toWhere.pathing[i] && link.target.id == toWhere.pathing[i + 1]);
+            text += `<li>From ${toWhere.pathing[i]} to ${toWhere.pathing[i + 1]}: ${currWeight} + ${conn.weight} = ${currWeight += conn.weight}</li>`;
+        }
+        text += "</ol>";
+        text = `<p><b>Shortest path from vertex ${first.id} to vertex ${toWhere.id} is ${toWhere.weight} units.</b></p>` + text;
+        set_status(text);
+
+        nodes
+            .filter(function (d) {
+                return toWhere.pathing.includes(d.id);
+            })
+            .select("circle")
+            .classed("result", true);
+
+        lines
+            .filter(function (d) {
+                for (let i = 0; i < toWhere.pathing.length - 1; i++) {
+                    if (d.source.id == toWhere.pathing[i] && d.target.id == toWhere.pathing[i + 1]) {
+                        return true;
+                    }
+                }
+                return false;
+            })
+            .style("stroke", "red");
+    }
+    else {
+        text = `<p><b>There is no way to get from vertex ${first.id} to vertex ${toWhere.id}.</b></p>` + text;
+        set_status(text);
+    }
+}
+
+function floyd() {
+    let result = "";
+    let sorted_copy = [...data.nodes].sort((a, b) => a.id - b.id);
+    const size = sorted_copy.length;
+    let matrix = get_weighted_matrix(sorted_copy);
+    
+    result += "<p>Our initial distance matrix: </p>" + matrix_to_table(sorted_copy, matrix) + "<p>Steps: </p><ol>";
+
+    for (let i = 0; i < size; i++) {
+        for (let j = 0; j < size; j++) {
+            for (let q = 0; q < size; q++) {
+                if (matrix[j][q] > matrix[j][i] + matrix[i][q]) {
+                    matrix[j][q] = matrix[j][i] + matrix[i][q];
+                }
+            }
+        }
+        result += `<li>${matrix_to_table(sorted_copy, matrix)}</li>`;
+    }
+
+    result = "<p><b>Final result (shortest distance matrix):</b></p>" + matrix_to_table(sorted_copy, matrix) + result + "</ol>";
+
+    set_status(result);
+}
+// #endregion
+
+//#region helper funcs
+function execute_when_two_selected(func) {
+    if (selected.length === 2) {
+        func(selected[0], selected[1]);
+        return true;
+    }
+    return false;
+}
+
+function get_weighted_matrix(sorted_nodes) {
+    const size = sorted_nodes.length;
+    let matrix = new Array(size);
+
+    for (var i = 0; i < size; i++) {
+        let vector = new Array(size);
+        vector.fill(Infinity);
+        matrix[i] = vector;
+    }
+
+    for (var i = 0; i < size; i++) {
+        for (var j = 0; j < size; j++) {
+            if (i == j) {
+                matrix[i][j] = 0;
+            }
+        }
+    }
+
+    for (let i = 0; i < size; i++) {
+        for (let j = 0; j < size; j++) {
+            if (data.links.some(q => q.source.id == sorted_nodes[i].id && q.target.id == sorted_nodes[j].id)) {
+                matrix[i][j] = data.links.find(q => q.source.id == sorted_nodes[i].id && q.target.id == sorted_nodes[j].id).weight;
+            }
+        }
+    }
+
+    return matrix;
+}
+
+function matrix_to_table(sorted_nodes, matrix) {
+    let table = '<table class="matrix-table"><tr><td></td>';
+
+    sorted_nodes.forEach(q => {
+        table += `<th scope="col">${q.id}</th>`;
+    });
+
+    table += "</tr>";
+
+    for (let i = 0; i < sorted_nodes.length; i++) {
+        table += `<tr><th scope="row">${sorted_nodes[i].id}</th>`;
+
+        matrix[i].forEach(q => {
+            if (q == Infinity) {
+                table += "<td>∞</td>";
+            }
+            else {
+                table += `<td>${q}</td>`;
+            }
+        });
+
+        table += "</tr>";
+    }
+
+    table += "</table>";
+    return table;
 }
 
 function cancel_button() {
@@ -368,3 +555,4 @@ function select_this(event, d) {
 function set_status(text) {
     document.getElementById("status").innerHTML = text;
 }
+//#endregion

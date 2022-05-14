@@ -24,9 +24,54 @@
 }
 
 .circle.selected{
-    fill: darkgoldenrod;
+    fill: gold;
 }
 
 .circle.result{
     fill: crimson;
 }
+
+.matrix-table {
+    text-align: center;
+    border: 0.1px solid black;
+    border-collapse: collapse;
+    margin-bottom: 30px;
+}
+    .matrix-table th {
+        border-right: 0.1px solid black;
+        padding: 2px 10px 2px 10px;
+        background-color: aquamarine;
+    }
+
+    .matrix-table tr {
+        border-bottom: 0.1px solid black;
+    }
+
+    .matrix-table td {
+        background-color: wheat;
+        border-right: 0.1px solid black;
+        padding: 2px 10px 2px 10px;
+    }
+
+.list{
+    display: flex;
+    margin-bottom: 20px;
+}
+
+    .list .smallbox {
+        border: 0.1px solid black;
+        padding-left: 20px;
+        padding-right: 20px;
+        line-height: 102px;
+        background-color: #69b3a2;
+    }
+
+    .list .microbox {
+        border: 0.1px solid black;
+        margin-top: 20px;
+        margin-bottom: 20px;
+        padding: 0 35px 0 35px;
+        text-align: left;
+        line-height: 62px;
+        background-color: mediumpurple;
+    }

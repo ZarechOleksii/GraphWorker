@@ -1,7 +1,4 @@
-﻿
-document.getElementById("cancel_button").disabled = true;
-
-let data = {
+﻿let data = {
     nodes: [
         {
             "id": 1,
@@ -50,14 +47,6 @@ let data = {
         {
             "id": 12,
             "name": "L"
-        },
-        {
-            "id": 13,
-            "name": "QQ"
-        },
-        {
-            "id": 14,
-            "name": "QQW"
         }
     ],
     links: [
@@ -303,12 +292,4 @@ function ticked() {
         .attr("transform", function (d) {
             return "translate(" + d.x + "," + d.y + ")";
         });
-}
-
-function dblclick(d) {
-    d3.select(this).classed("fixed", d.fixed = false);
-}
-
-function dragstart(d) {
-    d3.select(this).classed("fixed", d.fixed = true);
 }
