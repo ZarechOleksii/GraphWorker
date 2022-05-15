@@ -19,17 +19,17 @@
     fill: #69b3a2;
 }
 
-.circle.fixed{
-    fill: mediumpurple;
-}
+    .circle.fixed{
+        fill: mediumpurple;
+    }
 
-.circle.selected{
-    fill: gold;
-}
+    .circle.selected{
+        fill: gold;
+    }
 
-.circle.result{
-    fill: crimson;
-}
+    .circle.result {
+        fill: darkorange;
+    }
 
 .matrix-table {
     text-align: center;

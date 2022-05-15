@@ -15,6 +15,7 @@
     </div>
     <div class="func-container">
         <button id="cancel_button" class="func-button" onclick="cancel_button()" disabled>Cancel</button>
+        <button class="func-button" onclick="clear_result()">Clear results</button>
         <div class="func-subtitle">Graph control</div>
         <button class="func-button" onclick="add_vertice()">Add vertex</button>
         <button class="func-button" onclick="add_connection(this)">Add connection</button>
@@ -32,7 +33,7 @@
         <button class="func-button" onclick="dijkstra(this)">Dijkstra's algorithm</button>
         <button class="func-button" onclick="floyd()">Floyd's algorithm</button>
         <div class="func-subtitle">Search methods</div>
-        <button class="func-button" onclick="">Depth-first search</button>
+        <button class="func-button" onclick="depth_first_search(this)">Depth-first search</button>
         <button class="func-button" onclick="">Breadth-first search</button>
     </div>
 </div>

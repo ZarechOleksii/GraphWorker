@@ -408,6 +408,18 @@ function dijkstra_logic(first_id, second_id) {
                 return false;
             })
             .style("stroke", "red");
+
+
+        lines
+            .filter(function (d) {
+                for (let i = 0; i < toWhere.pathing.length - 1; i++) {
+                    if (d.source.id == toWhere.pathing[i] && d.target.id == toWhere.pathing[i + 1]) {
+                        return false;
+                    }
+                }
+                return true;
+            })
+            .attr("stroke-opacity", "0.3");
     }
     else {
         text = `<p><b>There is no way to get from vertex ${first.id} to vertex ${toWhere.id}.</b></p>` + text;
@@ -440,7 +452,124 @@ function floyd() {
 }
 // #endregion
 
+// #region search algorithms
+
+async function depth_first_search(this_button){
+    this_button.style.backgroundColor = "lightgreen";
+    clear_selected();
+    clear_result();
+    document.getElementById("cancel_button").disabled = false;
+    enable_selection();
+    document.getElementById("status").innerHTML = `<b><p>Select starting point:</b></p>`;
+
+    const someTimeoutAction = () => {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                resolve(execute_when_one_selected);
+            }, 1000);
+        });
+    };
+
+    do {
+        let status = await someTimeoutAction();
+
+        if (status(dfs_logic) === true) {
+            break;
+        }
+    }
+    while (!cancel)
+    clear_selected()
+    this_button.style.backgroundColor = "white";
+}
+
+function dfs_logic(selected_id) {
+    let result = "<p><b>DFS:</b></p><table class=\"matrix-table\"><tr><th>Vertex</th><th>DFS-Number</th><th>Stack</th></tr>";
+    let passed = [selected_id];
+    let stack = [selected_id];
+    let to_mark = [];
+    let number = 1;
+
+    let sorted_copy = [...data.nodes].sort((a, b) => a.id - b.id);
+    let sorted_links_copy = [...data.links].sort((a, b) => {
+        if (a.source.id != b.source.id)
+            return a.source.id - b.source.id;
+        return a.target.id - b.target.id;
+    });
+
+    result += `<tr><td>${selected_id}</td><td>${number}</td><td>${selected_id}</td></tr>`;
+
+    while (stack.length != 0) {
+        let current = stack[stack.length - 1];
+
+        let filtered = sorted_links_copy
+            .filter(q => q.source.id == current && !passed.includes(q.target.id));
+
+        if (filtered.length == 0) {
+            stack.pop();
+            let to_put = "Ø";
+            if (stack.length != 0) {
+                to_put = stack.join(', ');
+            }
+            result += `<tr><td>-</td><td>-</td><td>${to_put}</td></tr>`;
+        }
+        else {
+            let conn = filtered[0];
+            number++;
+            stack.push(conn.target.id);
+            to_mark.push(conn);
+            passed.push(conn.target.id);
+            result += `<tr><td>${conn.target.id}</td><td>${number}</td><td>${stack.join(', ')}</td></tr>`;
+        }
+
+        if (stack.length == 0 && passed.length != sorted_copy.length) {
+            let new_node = sorted_copy
+                .filter(q => !passed.includes(q.id))[0];
+
+            number++;
+            stack.push(new_node.id);
+            passed.push(new_node.id);
+            result += `<tr><td>${new_node.id}</td><td>${number}</td><td>${stack.join(', ')}</td></tr>`;
+        }
+    }
+    result += "</table>";
+
+
+    nodes
+        .select("circle")
+        .classed("result", true);
+
+    lines
+        .filter(function (q) {
+            if (to_mark.filter(w => w.target.id == q.target.id && w.source.id == q.source.id).length == 1) {
+                return true;
+            }
+            return false;
+        })
+        .style("stroke", "red");
+
+    lines
+        .filter(function (q) {
+            if (to_mark.filter(w => w.target.id == q.target.id && w.source.id == q.source.id).length == 1) {
+                return false;
+            }
+            return true;
+        })
+        .attr("stroke-opacity", "0.3");
+
+    set_status(result);
+}
+
+// #endregion
+
 //#region helper funcs
+function execute_when_one_selected(func) {
+    if (selected.length === 1) {
+        func(selected[0]);
+        return true;
+    }
+    return false;
+}
+
 function execute_when_two_selected(func) {
     if (selected.length === 2) {
         func(selected[0], selected[1]);
@@ -527,6 +656,7 @@ function clear_result() {
         .classed("result", false);
 
     lines
+        .attr("stroke-opacity", "1")
         .style("stroke", "#aaa");
 }
 
