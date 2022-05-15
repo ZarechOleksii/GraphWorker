@@ -559,6 +559,111 @@ function dfs_logic(selected_id) {
     set_status(result);
 }
 
+async function breadth_first_search(this_button) {
+    this_button.style.backgroundColor = "lightgreen";
+    clear_selected();
+    clear_result();
+    document.getElementById("cancel_button").disabled = false;
+    enable_selection();
+    document.getElementById("status").innerHTML = `<b><p>Select starting point:</b></p>`;
+
+    const someTimeoutAction = () => {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                resolve(execute_when_one_selected);
+            }, 1000);
+        });
+    };
+
+    do {
+        let status = await someTimeoutAction();
+
+        if (status(bfs_logic) === true) {
+            break;
+        }
+    }
+    while (!cancel)
+    clear_selected()
+    this_button.style.backgroundColor = "white";
+}
+
+function bfs_logic(selected_id) {
+    let result = "<p><b>BFS:</b></p><table class=\"matrix-table\"><tr><th>Vertex</th><th>BFS-Number</th><th>Queue</th></tr>";
+    let passed = [selected_id];
+    let queue = [selected_id];
+    let to_mark = [];
+    let number = 1;
+
+    let sorted_copy = [...data.nodes].sort((a, b) => a.id - b.id);
+    let sorted_links_copy = [...data.links].sort((a, b) => {
+        if (a.source.id != b.source.id)
+            return a.source.id - b.source.id;
+        return a.target.id - b.target.id;
+    });
+
+    result += `<tr><td>${selected_id}</td><td>${number}</td><td>${selected_id}</td></tr>`;
+
+    while (queue.length != 0) {
+        let current = queue[0];
+
+        let filtered = sorted_links_copy
+            .filter(q => q.source.id == current && !passed.includes(q.target.id));
+
+        if (filtered.length == 0) {
+            queue.shift();
+            let to_put = "Ø";
+            if (queue.length != 0) {
+                to_put = queue.join(', ');
+            }
+            result += `<tr><td>-</td><td>-</td><td>${to_put}</td></tr>`;
+        }
+        else {
+            let conn = filtered[0];
+            number++;
+            queue.push(conn.target.id);
+            to_mark.push(conn);
+            passed.push(conn.target.id);
+            result += `<tr><td>${conn.target.id}</td><td>${number}</td><td>${queue.join(', ')}</td></tr>`;
+        }
+
+        if (queue.length == 0 && passed.length != sorted_copy.length) {
+            let new_node = sorted_copy
+                .filter(q => !passed.includes(q.id))[0];
+
+            number++;
+            queue.push(new_node.id);
+            passed.push(new_node.id);
+            result += `<tr><td>${new_node.id}</td><td>${number}</td><td>${queue.join(', ')}</td></tr>`;
+        }
+    }
+    result += "</table>";
+
+
+    nodes
+        .select("circle")
+        .classed("result", true);
+
+    lines
+        .filter(function (q) {
+            if (to_mark.filter(w => w.target.id == q.target.id && w.source.id == q.source.id).length == 1) {
+                return true;
+            }
+            return false;
+        })
+        .style("stroke", "red");
+
+    lines
+        .filter(function (q) {
+            if (to_mark.filter(w => w.target.id == q.target.id && w.source.id == q.source.id).length == 1) {
+                return false;
+            }
+            return true;
+        })
+        .attr("stroke-opacity", "0.3");
+
+    set_status(result);
+}
+
 // #endregion
 
 //#region helper funcs
