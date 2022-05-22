@@ -230,21 +230,20 @@ let labels = nodes
     .attr("text-anchor", "middle")
     .attr("y", 5);
 
-// Let's list the force we wanna apply on the network
-simulation = d3.forceSimulation(data.nodes)                 // Force algorithm is applied to data.nodes
-    .force("link", d3.forceLink()                               // This force provides links between nodes
-        .id(function (d) { return d.id; }).distance(120)                     // This provide  the id of a node
-        .links(data.links)                                    // and this the list of links
+simulation = d3.forceSimulation(data.nodes)
+    .force("link", d3.forceLink() 
+        .id(function (d) { return d.id; }).distance(120) 
+        .links(data.links)
     )
-    .force("charge", d3.forceManyBody().strength(-400))         // This adds repulsion between nodes. Play with the -400 for the repulsion strength
-    .force("center", d3.forceCenter(width / 2, height / 2))    // This force attracts nodes to the center of the svg area
+    .force("charge", d3.forceManyBody().strength(-400))
+    .force("center", d3.forceCenter(width / 2, height / 2))
     .on("end", ticked)
     .on("tick", ticked);
 
 function dragstarted(event, d) {
-    if (!event.active) simulation.alphaTarget(0.3).restart(); //sets the current target alpha to the specified number in the range [0,1].
-    d.fy = d.y; //fx - the node’s fixed x-position. Original is null.
-    d.fx = d.x; //fy - the node’s fixed y-position. Original is null.
+    if (!event.active) simulation.alphaTarget(0.3).restart();
+    d.fy = d.y;
+    d.fx = d.x;
     d3.select(this).select("circle").classed("fixed", true);
 }
 
@@ -261,7 +260,6 @@ function click(event, d) {
     simulation.alpha(1).restart();
 }
 
-// This function is run at each iteration of the force algorithm, updating the nodes position.
 function ticked() {
     lines
         .attr("d", function (d) {
