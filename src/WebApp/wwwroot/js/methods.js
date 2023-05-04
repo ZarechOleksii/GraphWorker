@@ -4,7 +4,7 @@ let selected = [];
 // #endregion
 
 // #region graph controll
-function add_vertice() {
+function add_vertex() {
     let id = 0;
     if (data.nodes.length > 0) {
         id = Math.max(...data.nodes.map(o => o.id));
@@ -106,8 +106,8 @@ function add_connection_logic(first_id, second_id) {
 
     data.links
         .push({
-            source: first_id,
-            target: second_id,
+            source: data.nodes.find(q => q.id == first_id),
+            target: data.nodes.find(q => q.id == second_id),
             weight: weight
         });
 
@@ -126,7 +126,7 @@ function add_connection_logic(first_id, second_id) {
         .append("g")
         .attr("class", "line");
 
-    links = new_link.merge(new_link);
+    links = new_link.merge(links);
 
     lines = new_link
         .append("path")
@@ -135,7 +135,7 @@ function add_connection_logic(first_id, second_id) {
         .attr('marker-end', (d) => "url(#arrow)")//attach the arrow from defs
         .style("stroke-width", 2)
         .merge(lines);
-
+        
     nodes = svg
         .selectAll(".node")
         .data(data.nodes)
@@ -181,10 +181,82 @@ function add_connection_logic(first_id, second_id) {
         })
         .attr("text-anchor", "middle")
         .attr("y", 5)
-        .merge(labels);
+        .merge(labels); 
+
     simulation.nodes(data.nodes)
+    simulation
+        .force("link", d3.forceLink()
+            .id(function (d) { return d.id; }).distance(120)
+            .links(data.links)
+        );
     simulation.alpha(0.1).restart()
     set_status(`<b><p>Successfully connected ${first_id} to ${second_id}.</b ></p>`);
+}
+
+async function remove_vertex(this_button) {
+    this_button.style.backgroundColor = "lightgreen";
+    clear_selected();
+    clear_result();
+    document.getElementById("cancel_button").disabled = false;
+    enable_selection();
+
+    document.getElementById("status").innerHTML = `<b><p>Select vertex to remove</b></p>`;
+
+    const someTimeoutAction = () => {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                resolve(execute_when_one_selected);
+            }, 1000);
+        });
+    };
+
+    do {
+        let status = await someTimeoutAction();
+
+        if (status(remove_vertex_logic) === true) {
+            break;
+        }
+    }
+    while (!cancel)
+    clear_selected()
+    this_button.style.backgroundColor = "white";
+}
+
+function remove_vertex_logic(selected_id) {
+    data.nodes = data.nodes.filter(q => q.id != selected_id);
+    data.links = data.links.filter(q => q.source.id != selected_id && q.target.id != selected_id);
+
+    svg.selectAll(".line").filter(q => q.source.id == selected_id || q.target.id == selected_id).remove();
+    links = svg.selectAll(".line");
+    lines = links.select("path");
+    svg.selectAll(".node").filter(d => d.id == selected_id).remove();
+    nodes = svg.selectAll(".node");
+    circles = nodes.select("circle");
+    svg.selectAll(".link-text").filter(q => q.source.id == selected_id || q.target.id == selected_id).remove();
+    link_labels = svg.selectAll(".link-text");
+    labels = nodes.select("text");
+
+    simulation.nodes(data.nodes)
+    simulation.alpha(0.1).restart()
+    set_status(`<b><p>Successfully removed vertex ${selected_id}.</b ></p>`);
+}
+
+function clear_graph() {
+    data.nodes = [];
+    data.links = [];
+
+    svg.selectAll(".line").remove();
+    links = svg.selectAll(".line");
+    lines = links.select("path");
+    svg.selectAll(".node").remove();
+    nodes = svg.selectAll(".node");
+    circles = nodes.select("circle");
+    svg.selectAll(".link-text").remove();
+    link_labels = svg.selectAll(".link-text");
+    labels = nodes.select("text");
+
+    simulation.nodes(data.nodes)
+    simulation.alpha(0.1).restart()
 }
 // #endregion
 

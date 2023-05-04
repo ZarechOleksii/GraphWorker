@@ -93,42 +93,42 @@
         {
             "source": 8,
             "target": 3,
-            "weight": 10
+            "weight": 92
         },
         {
             "source": 4,
             "target": 5,
-            "weight": 10
+            "weight": 93
         },
         {
             "source": 4,
             "target": 9,
-            "weight": 10
+            "weight": 94
         },
         {
             "source": 5,
             "target": 10,
-            "weight": 10
+            "weight": 95
         },
         {
             "source": 11,
             "target": 12,
-            "weight": 10
+            "weight": 96
         },
         {
             "source": 9,
             "target": 11,
-            "weight": 10
+            "weight": 97
         },
         {
             "source": 8,
             "target": 12,
-            "weight": 10
+            "weight": 98
         },
         {
             "source": 7,
             "target": 12,
-            "weight": 10
+            "weight": 99
         }
     ]
 };
@@ -211,7 +211,7 @@ let circles = nodes
 
 
 let link_labels = svg
-    .selectAll("link-text")
+    .selectAll(".link-text")
     .data(data.links)
     .enter()
     .append("text")
