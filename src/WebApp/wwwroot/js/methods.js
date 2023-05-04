@@ -257,6 +257,7 @@ function clear_graph() {
 
     simulation.nodes(data.nodes)
     simulation.alpha(0.1).restart()
+    set_status(`<b><p>Cleared entire graph.</b ></p>`);
 }
 // #endregion
 
