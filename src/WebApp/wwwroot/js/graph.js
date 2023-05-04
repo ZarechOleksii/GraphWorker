@@ -1,293 +1,551 @@
-﻿let data = {
-    nodes: [
-        {
-            "id": 1,
-            "name": "A"
-        },
-        {
-            "id": 2,
-            "name": "B"
-        },
-        {
-            "id": 3,
-            "name": "C"
-        },
-        {
-            "id": 4,
-            "name": "D"
-        },
-        {
-            "id": 5,
-            "name": "E"
-        },
-        {
-            "id": 6,
-            "name": "F"
-        },
-        {
-            "id": 7,
-            "name": "G"
-        },
-        {
-            "id": 8,
-            "name": "H"
-        },
-        {
-            "id": 9,
-            "name": "I"
-        },
-        {
-            "id": 10,
-            "name": "J"
-        },
-        {
-            "id": 11,
-            "name": "K"
-        },
-        {
-            "id": 12,
-            "name": "L"
+﻿import { ReadonlyGraph } from './ReadonlyGraph.js';
+
+export class Graph extends ReadonlyGraph {
+    constructor(svg_selector, conainer_selector, data) {
+        super(svg_selector, conainer_selector, data);
+        this.cancel = false;
+        this.selected = [];
+
+        this.add_connection_logic = this.add_connection_logic.bind(this);
+        this.remove_vertex_logic = this.remove_vertex_logic.bind(this);
+
+        this.dijkstra_logic = this.dijkstra_logic.bind(this);
+
+        this.dfs_logic = this.dfs_logic.bind(this);
+        this.bfs_logic = this.bfs_logic.bind(this);
+
+        this.select_this = this.select_this.bind(this);
+        this.execute_when_one_selected = this.execute_when_one_selected.bind(this);
+        this.execute_when_two_selected = this.execute_when_two_selected.bind(this);
+    }
+
+    // #region Graph changes
+
+    add_vertex() {
+        let vars = this;
+
+        let id = 0;
+        if (this.data.nodes.length > 0) {
+            id = Math.max(...this.data.nodes.map(o => o.id));
         }
-    ],
-    links: [
-        {
-            "source": 1,
-            "target": 2,
-            "weight": 20
-        },
-        {
-            "source": 1,
-            "target": 5,
-            "weight": 20
-        },
-        {
-            "source": 1,
-            "target": 6,
-            "weight": 10
-        },
-        {
-            "source": 2,
-            "target": 3,
-            "weight": 5
-        },
-        {
-            "source": 2,
-            "target": 7,
-            "weight": 5
-        },
-        {
-            "source": 3,
-            "target": 4,
-            "weight": 10
-        },
-        {
-            "source": 6,
-            "target": 10,
-            "weight": 3
-        },
-        {
-            "source": 10,
-            "target": 6,
-            "weight": 2
-        },
-        {
-            "source": 8,
-            "target": 3,
-            "weight": 92
-        },
-        {
-            "source": 4,
-            "target": 5,
-            "weight": 93
-        },
-        {
-            "source": 4,
-            "target": 9,
-            "weight": 94
-        },
-        {
-            "source": 5,
-            "target": 10,
-            "weight": 95
-        },
-        {
-            "source": 11,
-            "target": 12,
-            "weight": 96
-        },
-        {
-            "source": 9,
-            "target": 11,
-            "weight": 97
-        },
-        {
-            "source": 8,
-            "target": 12,
-            "weight": 98
-        },
-        {
-            "source": 7,
-            "target": 12,
-            "weight": 99
+        id += 1;
+        let name = "o"
+        this.data.nodes.push({ id: id, name: name });
+
+        this.svg
+            .selectAll(".link-text")
+            .remove();
+
+        let new_node = this.svg
+            .selectAll(".node")
+            .data(this.data.nodes)
+            .enter()
+            .append("g")
+            .attr("class", "node")
+            .call(
+                d3.drag()
+                    .on("start", function (d, i) { vars.dragstarted(d, i, this) })
+                    .on("drag", this.dragged)
+            )
+            .on("click", this.click);
+
+        this.nodes = new_node
+            .merge(this.nodes)
+
+        this.circles = new_node
+            .append("circle")
+            .attr("r", this.r)
+            .attr("class", "circle")
+            .merge(this.circles);
+
+        this.link_labels = this.svg
+            .selectAll("link-text")
+            .data(this.data.links)
+            .enter()
+            .append("text")
+            .attr("dy", 5)
+            .attr("text-anchor", "middle")
+            .attr("class", "link-text")
+            .text(function (d) {
+                return d.weight
+            });
+
+        this.labels = new_node
+            .append("text")
+            .text(function (d) {
+                return d.id;
+            })
+            .attr("text-anchor", "middle")
+            .attr("y", 5)
+            .merge(this.labels);
+
+        this.simulation.nodes(this.data.nodes)
+        this.simulation.alpha(0.1).restart()
+
+        this.set_status(`<b><p>Added vertex ${id}.</b></p>`);
+    }
+
+    add_connection_logic(first_id, second_id) {
+        let vars = this;
+        let weight = 30;
+
+        if (this.data.links.find(q => q.source.id == first_id && q.target.id == second_id) != null) {
+            document.getElementById("status").innerHTML = `<b><p>Connection from ${first_id} to ${second_id} already exists.</b ></p>`;
+            return;
         }
-    ]
-};
 
-let graph = document.getElementById("graph");
-let width = graph.clientWidth;
-let height = graph.clientHeight;
-let r = 20;
+        this.simulation.stop();
 
-let zoom = d3
-    .zoom()
-    .scaleExtent([1, 4])
-    .translateExtent([[0, 0], [width, height]])
-    .extent([[0, 0], [width, height]])
-    .on('zoom', function (e) {
-        svg.attr("transform", e.transform)
-    });
+        this.data.links
+            .push({
+                source: this.data.nodes.find(q => q.id == first_id),
+                target: this.data.nodes.find(q => q.id == second_id),
+                weight: weight
+            });
 
-d3.select(".graph-container").call(zoom);
+        this.svg
+            .selectAll(".link-text")
+            .remove();
 
-let svg = d3.select("#graph");
+        this.svg
+            .selectAll(".node")
+            .remove();
 
-let simulation;
+        let new_link = this.svg
+            .selectAll(".line")
+            .data(this.data.links)
+            .enter()
+            .append("g")
+            .attr("class", "line");
 
-window.addEventListener("resize", function () {
-    width = graph.clientWidth;
-    height = graph.clientHeight;
+        this.links = new_link.merge(this.links);
 
-    simulation.force("center")
-        .x(width / 2)
-        .y(height / 2);
+        this.lines = new_link
+            .append("path")
+            .style("stroke", "#aaa")
+            .attr("fill-opacity", "0")
+            .attr('marker-end', (d) => "url(#arrow)")//attach the arrow from defs
+            .style("stroke-width", 2)
+            .merge(this.lines);
 
-    simulation.alpha(1).restart();
-});
+        this.nodes = this.svg
+            .selectAll(".node")
+            .data(this.data.nodes)
+            .enter()
+            .append("g")
+            .attr("class", "node")
+            .call(
+                d3.drag()
+                    .on("start", function (d, i) { vars.dragstarted(d, i, this) })
+                    .on("drag", this.dragged)
+            )
+            .on("click", this.click);
 
-svg.append("svg:defs").append("svg:marker")
-    .attr("id", "arrow")
-    .attr("viewBox", "0 -5 10 10")
-    .attr('refX', 29)
-    .attr('refY', 0)
-    .attr("markerWidth", 5)
-    .attr("markerHeight", 5)
-    .attr("orient", "auto")
-    .append("svg:path")
-    .attr("d", "M0,-5L10,0L0,5");
+        this.circles = this.nodes
+            .append("circle")
+            .attr("r", this.r)
+            .attr("class", "circle");
 
-// Initialize the links
-let links = svg
-    .selectAll(".line")
-    .data(data.links)
-    .enter()
-    .append("g")
-    .attr("class", "line");
+        this.nodes
+            .filter(function (d) {
+                return d.fx != null
+            })
+            .select("circle")
+            .classed("fixed", true);
 
-let lines = links
-    .append("path")
-    .style("stroke", "#aaa")
-    .attr("fill-opacity", "0")
-    .attr('marker-end', (d) => "url(#arrow)")//attach the arrow from defs
-    .style("stroke-width", 2);
+        this.link_labels = this.svg
+            .selectAll("link-text")
+            .data(this.data.links)
+            .enter()
+            .append("text")
+            .attr("dy", 5)
+            .attr("text-anchor", "middle")
+            .attr("class", "link-text")
+            .text(function (d) {
+                return d.weight
+            })
+            .merge(this.link_labels);
 
-// Initialize the nodes
-let nodes = svg
-    .selectAll(".node")
-    .data(data.nodes)
-    .enter()
-    .append("g")
-    .attr("class", "node")
-    .call(
-        d3.drag() //sets the event listener for the specified typenames and returns the drag behavior.
-            .on("start", dragstarted) //start - after a new pointer becomes active (on mousedown or touchstart).
-            .on("drag", dragged) //drag - after an active pointer moves (on mousemove or touchmove).
-    )
-    .on("click", click);
+        this.labels = this.nodes
+            .append("text")
+            .text(function (d) {
+                return d.id;
+            })
+            .attr("text-anchor", "middle")
+            .attr("y", 5)
+            .merge(this.labels);
 
-let circles = nodes
-    .append("circle")
-    .attr("r", r)
-    .attr("class", "circle");
+        this.simulation.nodes(this.data.nodes)
+        this.simulation
+            .force("link", d3.forceLink()
+                .id(function (d) { return d.id; }).distance(120)
+                .links(this.data.links)
+            );
+        this.simulation.alpha(0.1).restart()
+        this.set_status(`<b><p>Successfully connected ${first_id} to ${second_id}.</b ></p>`);
+    }
+
+    remove_vertex_logic(selected_id) {
+        this.data.nodes = this.data.nodes.filter(q => q.id != selected_id);
+        this.data.links = this.data.links.filter(q => q.source.id != selected_id && q.target.id != selected_id);
+
+        this.svg.selectAll(".line").filter(q => q.source.id == selected_id || q.target.id == selected_id).remove();
+        this.links = this.svg.selectAll(".line");
+        this.lines = this.links.select("path");
+        this.svg.selectAll(".node").filter(d => d.id == selected_id).remove();
+        this.nodes = this.svg.selectAll(".node");
+        this.circles = this.nodes.select("circle");
+        this.svg.selectAll(".link-text").filter(q => q.source.id == selected_id || q.target.id == selected_id).remove();
+        this.link_labels = this.svg.selectAll(".link-text");
+        this.labels = this.nodes.select("text");
+
+        this.simulation.nodes(this.data.nodes)
+        this.simulation.alpha(0.1).restart()
+        this.set_status(`<b><p>Successfully removed vertex ${selected_id}.</b ></p>`);
+    }
+
+    clear_graph() {
+        this.data.nodes = [];
+        this.data.links = [];
+
+        this.svg.selectAll(".line").remove();
+        this.links = this.svg.selectAll(".line");
+        this.lines = this.links.select("path");
+        this.svg.selectAll(".node").remove();
+        this.nodes = this.svg.selectAll(".node");
+        this.circles = this.nodes.select("circle");
+        this.svg.selectAll(".link-text").remove();
+        this.link_labels = this.svg.selectAll(".link-text");
+        this.labels = this.nodes.select("text");
+
+        this.simulation.nodes(this.data.nodes)
+        this.simulation.alpha(0.1).restart()
+        this.set_status(`<b><p>Cleared entire graph.</b ></p>`);
+    }
+
+    // #endregion
+
+    // #region Shortest path algorithms
+
+    dijkstra_logic(first_id, second_id) {
+
+        let dataAlgo = this.data.nodes.map(node => ({
+            id: node.id,
+            passed: false,
+            weight: Infinity,
+            name: node.name,
+            connections: this.data.links.filter(link => link.source.id == node.id),
+            pathing: []
+        }));
+
+        let first = dataAlgo.find(node => node.id == first_id);
+        let current = first;
+        current.weight = 0;
+
+        let text = `<b>Algorithm steps:</b><p>Set weight of all points to infinity, starting from point ${current.id}, weight 0.</p><ol>`;
+
+        while (current != null) {
+            text += `<li>Setting new weights from point ${current.id}.<ol>`;
+
+            current.connections.forEach(function (con) {
+                let secondPoint = dataAlgo.find(node => node.id == con.target.id);
+
+                if (!secondPoint.passed) {
+                    if (secondPoint.weight > current.weight + con.weight) {
+                        text += `<li>Setting new weight for ${secondPoint.id}: from ${secondPoint.weight} to ${current.weight} + ${con.weight} = ${current.weight + con.weight}</li>`
+                        secondPoint.weight = current.weight + con.weight;
+                        secondPoint.pathing = Array.from(current.pathing);
+                        secondPoint.pathing.push(current.id);
+                    }
+                }
+            });
+
+            current.passed = true;
+            let filtered = dataAlgo
+                .filter(q => !q.passed && q.weight != Infinity);
+
+            if (filtered.length > 0) {
+                current = filtered.reduce((first, second) => first.weight > second.weight ? second : first);
+                text += `</ol><p>New minimal point is ${current.id}, weight ${current.weight}.</p></li>`;
+            }
+            else {
+                text += "</ol></li></ol><p>All available points are passed</p>";
+                current = null;
+            }
+        }
+
+        let toWhere = dataAlgo.find(node => node.id == second_id);
+        toWhere.pathing.push(toWhere.id);
+
+        if (toWhere.weight != Infinity) {
+            let currWeight = 0;
+
+            text += "<p>Entire path summary:</p><ol>";
+            for (let i = 0; i < toWhere.pathing.length - 1; i++) {
+                let conn = this.data.links.find(link => link.source.id == toWhere.pathing[i] && link.target.id == toWhere.pathing[i + 1]);
+                text += `<li>From ${toWhere.pathing[i]} to ${toWhere.pathing[i + 1]}: ${currWeight} + ${conn.weight} = ${currWeight += conn.weight}</li>`;
+            }
+            text += "</ol>";
+            text = `<p><b>Shortest path from vertex ${first.id} to vertex ${toWhere.id} is ${toWhere.weight} units.</b></p>` + text;
+            this.set_status(text);
+
+            this.nodes
+                .filter(function (d) {
+                    return toWhere.pathing.includes(d.id);
+                })
+                .select("circle")
+                .classed("result", true);
+
+            this.lines
+                .filter(function (d) {
+                    for (let i = 0; i < toWhere.pathing.length - 1; i++) {
+                        if (d.source.id == toWhere.pathing[i] && d.target.id == toWhere.pathing[i + 1]) {
+                            return true;
+                        }
+                    }
+                    return false;
+                })
+                .style("stroke", "red");
 
 
-let link_labels = svg
-    .selectAll(".link-text")
-    .data(data.links)
-    .enter()
-    .append("text")
-    .attr("dy", 5)
-    .attr("text-anchor", "middle")
-    .attr("class", "link-text")
-    .text(function (d) {
-        return d.weight
-    });
+            this.lines
+                .filter(function (d) {
+                    for (let i = 0; i < toWhere.pathing.length - 1; i++) {
+                        if (d.source.id == toWhere.pathing[i] && d.target.id == toWhere.pathing[i + 1]) {
+                            return false;
+                        }
+                    }
+                    return true;
+                })
+                .attr("stroke-opacity", "0.3");
+        }
+        else {
+            text = `<p><b>There is no way to get from vertex ${first.id} to vertex ${toWhere.id}.</b></p>` + text;
+            this.set_status(text);
+        }
+    }
 
-let labels = nodes
-    .append("text")
-    .text(function (d) {
-        return d.id;
-    })
-    .attr("text-anchor", "middle")
-    .attr("y", 5);
+    // #endregion
 
-simulation = d3.forceSimulation(data.nodes)
-    .force("link", d3.forceLink() 
-        .id(function (d) { return d.id; }).distance(120) 
-        .links(data.links)
-    )
-    .force("charge", d3.forceManyBody().strength(-400))
-    .force("center", d3.forceCenter(width / 2, height / 2))
-    .on("end", ticked)
-    .on("tick", ticked);
+    // #region Search algorithms
 
-function dragstarted(event, d) {
-    if (!event.active) simulation.alphaTarget(0.3).restart();
-    d.fy = d.y;
-    d.fx = d.x;
-    d3.select(this).select("circle").classed("fixed", true);
-}
+    dfs_logic(selected_id) {
+        let result = "<p><b>DFS:</b></p><table class=\"matrix-table\"><tr><th>Vertex</th><th>DFS-Number</th><th>Stack</th></tr>";
+        let passed = [selected_id];
+        let stack = [selected_id];
+        let to_mark = [];
+        let number = 1;
 
-//When the drag gesture starts, the targeted node is fixed to the pointer
-function dragged(event, d) {
-    d.fx = event.x;
-    d.fy = event.y;
-}
-
-function click(event, d) {
-    d.fx = null;
-    d.fy = null;
-    d3.select(this).select("circle").classed("fixed", false);
-    simulation.alpha(1).restart();
-}
-
-function ticked() {
-    lines
-        .attr("d", function (d) {
-            let SX = Math.max(r, Math.min(width - r, d.source.x));
-            let SY = Math.max(r, Math.min(height - r, d.source.y));
-            let TX = Math.max(r, Math.min(width - r, d.target.x));
-            let TY = Math.max(r, Math.min(height - r, d.target.y));
-
-            return `M${SX},${SY},${TX},${TY}`; //uncurved
-
-            let dx = TX - SX;
-            let dy = TY - SY;
-            let dr = Math.sqrt(dx * dx + dy * dy);
-            //return `M${SX},${SY}A${dr},${dr} 0 0,1 ${TX},${TY}`; //curved (need to change pointer and labels)
+        let sorted_copy = [...this.data.nodes].sort((a, b) => a.id - b.id);
+        let sorted_links_copy = [...this.data.links].sort((a, b) => {
+            if (a.source.id != b.source.id)
+                return a.source.id - b.source.id;
+            return a.target.id - b.target.id;
         });
 
-    link_labels
-        .attr("x", function (d) {
-            return d.target.x - ((d.target.x - d.source.x) / 3);
-        })
-        .attr("y", function (d) {
-            return d.target.y - ((d.target.y - d.source.y) / 3);
+        result += `<tr><td>${selected_id}</td><td>${number}</td><td>${selected_id}</td></tr>`;
+
+        while (stack.length != 0) {
+            let current = stack[stack.length - 1];
+
+            let filtered = sorted_links_copy
+                .filter(q => q.source.id == current && !passed.includes(q.target.id));
+
+            if (filtered.length == 0) {
+                stack.pop();
+                let to_put = "Ø";
+                if (stack.length != 0) {
+                    to_put = stack.join(', ');
+                }
+                result += `<tr><td>-</td><td>-</td><td>${to_put}</td></tr>`;
+            }
+            else {
+                let conn = filtered[0];
+                number++;
+                stack.push(conn.target.id);
+                to_mark.push(conn);
+                passed.push(conn.target.id);
+                result += `<tr><td>${conn.target.id}</td><td>${number}</td><td>${stack.join(', ')}</td></tr>`;
+            }
+
+            if (stack.length == 0 && passed.length != sorted_copy.length) {
+                let new_node = sorted_copy
+                    .filter(q => !passed.includes(q.id))[0];
+
+                number++;
+                stack.push(new_node.id);
+                passed.push(new_node.id);
+                result += `<tr><td>${new_node.id}</td><td>${number}</td><td>${stack.join(', ')}</td></tr>`;
+            }
+        }
+        result += "</table>";
+
+        this.nodes
+            .select("circle")
+            .classed("result", true);
+
+        this.lines
+            .filter(function (q) {
+                if (to_mark.filter(w => w.target.id == q.target.id && w.source.id == q.source.id).length == 1) {
+                    return true;
+                }
+                return false;
+            })
+            .style("stroke", "red");
+
+        this.lines
+            .filter(function (q) {
+                if (to_mark.filter(w => w.target.id == q.target.id && w.source.id == q.source.id).length == 1) {
+                    return false;
+                }
+                return true;
+            })
+            .attr("stroke-opacity", "0.3");
+
+        this.set_status(result);
+    }
+
+    bfs_logic(selected_id) {
+        let result = "<p><b>BFS:</b></p><table class=\"matrix-table\"><tr><th>Vertex</th><th>BFS-Number</th><th>Queue</th></tr>";
+        let passed = [selected_id];
+        let queue = [selected_id];
+        let to_mark = [];
+        let number = 1;
+
+        let sorted_copy = [...this.data.nodes].sort((a, b) => a.id - b.id);
+        let sorted_links_copy = [...this.data.links].sort((a, b) => {
+            if (a.source.id != b.source.id)
+                return a.source.id - b.source.id;
+            return a.target.id - b.target.id;
         });
 
-    nodes
-        .attr("cx", function (d) { return d.x = Math.max(r, Math.min(width - r, d.x)); })
-        .attr("cy", function (d) { return d.y = Math.max(r, Math.min(height - r, d.y)); })
-        .attr("transform", function (d) {
-            return "translate(" + d.x + "," + d.y + ")";
-        });
+        result += `<tr><td>${selected_id}</td><td>${number}</td><td>${selected_id}</td></tr>`;
+
+        while (queue.length != 0) {
+            let current = queue[0];
+
+            let filtered = sorted_links_copy
+                .filter(q => q.source.id == current && !passed.includes(q.target.id));
+
+            if (filtered.length == 0) {
+                queue.shift();
+                let to_put = "Ø";
+                if (queue.length != 0) {
+                    to_put = queue.join(', ');
+                }
+                result += `<tr><td>-</td><td>-</td><td>${to_put}</td></tr>`;
+            }
+            else {
+                let conn = filtered[0];
+                number++;
+                queue.push(conn.target.id);
+                to_mark.push(conn);
+                passed.push(conn.target.id);
+                result += `<tr><td>${conn.target.id}</td><td>${number}</td><td>${queue.join(', ')}</td></tr>`;
+            }
+
+            if (queue.length == 0 && passed.length != sorted_copy.length) {
+                let new_node = sorted_copy
+                    .filter(q => !passed.includes(q.id))[0];
+
+                number++;
+                queue.push(new_node.id);
+                passed.push(new_node.id);
+                result += `<tr><td>${new_node.id}</td><td>${number}</td><td>${queue.join(', ')}</td></tr>`;
+            }
+        }
+        result += "</table>";
+
+
+        this.nodes
+            .select("circle")
+            .classed("result", true);
+
+        this.lines
+            .filter(function (q) {
+                if (to_mark.filter(w => w.target.id == q.target.id && w.source.id == q.source.id).length == 1) {
+                    return true;
+                }
+                return false;
+            })
+            .style("stroke", "red");
+
+        this.lines
+            .filter(function (q) {
+                if (to_mark.filter(w => w.target.id == q.target.id && w.source.id == q.source.id).length == 1) {
+                    return false;
+                }
+                return true;
+            })
+            .attr("stroke-opacity", "0.3");
+
+        this.set_status(result);
+    }
+
+    // #endregion
+
+    // #region Helpers
+    execute_when_one_selected(func) {
+        if (this.selected.length === 1) {
+            func(this.selected[0]);
+            return true;
+        }
+        return false;
+    }
+
+    execute_when_two_selected(func) {
+        if (this.selected.length === 2) {
+            func(this.selected[0], this.selected[1]);
+            return true;
+        }
+        return false;
+    }
+    
+    clear_result() {
+        this.circles
+            .classed("result", false);
+
+        this.lines
+            .attr("stroke-opacity", "1")
+            .style("stroke", "#aaa");
+    }
+
+    clear_selected() {
+        document.getElementById("cancel_button").disabled = true;
+        this.cancel = false;
+        this.circles.classed("selected", false);
+        this.selected = [];
+
+        this.svg
+            .selectAll(".node")
+            .on("click", this.click);
+    }
+
+    enable_selection() {
+        this.svg
+            .selectAll(".node")
+            .on("click", this.select_this);
+    }
+
+    select_this(event, d) {
+        if (!this.selected.includes(d.id)) {
+            d3
+                .select(event.currentTarget)
+                .select(".circle")
+                .classed("selected", true);
+
+            d.fx = null;
+            d.fy = null;
+            d3.select(event.currentTarget).select("circle").classed("fixed", false);
+            this.simulation.alpha(1).restart();
+
+            this.selected.push(d.id);
+        }
+    }
+
+    set_status(text) {
+        document.getElementById("status").innerHTML = text;
+    }
+
+    // #endregion
 }
