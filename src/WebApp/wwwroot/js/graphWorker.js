@@ -135,7 +135,7 @@ let data = {
     ]
 };
 
-let graph = new Graph('#graph', '.graph-container', data, '#status');
+let graph = new Graph('#graph', '.graph-container', data, '#status', false, true);
 let deleting = false;
 let cancel_add_con = true;
 let cancel_rem_ver = true;
@@ -374,6 +374,10 @@ window.floyd = () => {
     }
 
     result = "<p><b>Final result (shortest distance matrix):</b></p>" + matrix_to_table(sorted_copy, matrix) + result + "</ol>";
+
+    if (graph.data.links.some(link => link.weight < 0)) {
+        result = '<h2><b style="color:red">Negative weights detected, the results are not guaranteed to be true!</b></h2>' + result;
+    }
 
     set_status(result);
 }

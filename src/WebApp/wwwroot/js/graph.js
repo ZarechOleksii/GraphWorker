@@ -1,8 +1,9 @@
 ﻿import { ReadonlyGraph } from './ReadonlyGraph.js';
 
 export class Graph extends ReadonlyGraph {
-    constructor(svg_selector, conainer_selector, data, status_bar_selector) {
-        super(svg_selector, conainer_selector, data);
+    constructor(svg_selector, conainer_selector, data, status_bar_selector, isOriented, isWeighted) {
+        super(svg_selector, conainer_selector, data, isOriented, isWeighted);
+
         this.selected = [];
         this.status_bar_selector = status_bar_selector;
 
@@ -14,12 +15,17 @@ export class Graph extends ReadonlyGraph {
         this.dfs_logic = this.dfs_logic.bind(this);
         this.bfs_logic = this.bfs_logic.bind(this);
 
+        this.change_weight = this.change_weight.bind(this);
         this.delete_conn = this.delete_conn.bind(this);
         this.select_this = this.select_this.bind(this);
         this.execute_when_one_selected = this.execute_when_one_selected.bind(this);
         this.execute_when_two_selected = this.execute_when_two_selected.bind(this);
 
         this.set_status = this.set_status.bind(this);
+
+        this.svg
+            .selectAll(".link-text")
+            .on("click", this.change_weight);
     }
 
     // #region Graph changes
@@ -69,6 +75,7 @@ export class Graph extends ReadonlyGraph {
             .attr("dy", 5)
             .attr("text-anchor", "middle")
             .attr("class", "link-text")
+            .on("click", this.change_weight)
             .text(function (d) {
                 return d.weight
             });
@@ -164,6 +171,7 @@ export class Graph extends ReadonlyGraph {
             .attr("dy", 5)
             .attr("text-anchor", "middle")
             .attr("class", "link-text")
+            .on("click", this.change_weight)
             .text(function (d) {
                 return d.weight
             })
@@ -324,6 +332,11 @@ export class Graph extends ReadonlyGraph {
         else {
             text = `<p><b>There is no way to get from vertex ${first.id} to vertex ${toWhere.id}.</b></p>` + text;
         }
+
+        if (this.data.links.some(link => link.weight < 0)) {
+            text = '<h2><b style="color:red">Negative weights detected, the results are not guaranteed to be true!</b></h2>' + text;
+        }
+
         this.set_status(text);
     }
 
@@ -487,6 +500,7 @@ export class Graph extends ReadonlyGraph {
     // #endregion
 
     // #region Helpers
+
     execute_when_one_selected(func) {
         this.enable_selection();
         if (this.selected.length === 1) {
@@ -539,6 +553,22 @@ export class Graph extends ReadonlyGraph {
         this.svg
             .selectAll(".line")
             .on("click", null);
+    }
+
+    change_weight(event, d) {
+        let result = prompt("Enter new weight:");
+        let parsed = parseFloat(result);
+
+        if (isNaN(parsed)) {
+            this.set_status(`Entered value is not a valid weight: ${result}`);
+        }
+        else {
+            d.weight = parsed;
+
+            d3.select(event.currentTarget).text(function (d) {
+                return d.weight
+            });
+        }
     }
 
     delete_conn(event, d) {

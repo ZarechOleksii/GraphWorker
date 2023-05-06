@@ -1,5 +1,8 @@
 ﻿export class ReadonlyGraph {
-    constructor(svg_selector, conainer_selector, data) {
+    constructor(svg_selector, conainer_selector, data, isOriented, isWeighted) {
+        this.isOriented = isOriented;
+        this.isWeighted = isWeighted;
+
         let vars = this;
 
         this.ticked = this.ticked.bind(this);
@@ -29,18 +32,20 @@
 
         window.addEventListener("resize", this.resize);
 
-        this.svg
-            .append("svg:defs")
-            .append("svg:marker")
-            .attr("id", "arrow")
-            .attr("viewBox", "0 -5 10 10")
-            .attr('refX', 29)
-            .attr('refY', 0)
-            .attr("markerWidth", 5)
-            .attr("markerHeight", 5)
-            .attr("orient", "auto")
-            .append("svg:path")
-            .attr("d", "M0,-5L10,0L0,5");
+        if (this.isOriented) {
+            this.svg
+                .append("svg:defs")
+                .append("svg:marker")
+                .attr("id", "arrow")
+                .attr("viewBox", "0 -5 10 10")
+                .attr('refX', 29)
+                .attr('refY', 0)
+                .attr("markerWidth", 5)
+                .attr("markerHeight", 5)
+                .attr("orient", "auto")
+                .append("svg:path")
+                .attr("d", "M0,-5L10,0L0,5");
+        }
 
         this.links = this.svg
             .selectAll(".line")
@@ -155,13 +160,28 @@
                 //return `M${SX},${SY}A${dr},${dr} 0 0,1 ${TX},${TY}`; //curved (need to change pointer and labels)
             });
 
-        this.link_labels
-            .attr("x", function (d) {
-                return d.target.x - ((d.target.x - d.source.x) / 3);
-            })
-            .attr("y", function (d) {
-                return d.target.y - ((d.target.y - d.source.y) / 3);
-            });
+        if (this.isWeighted) {
+
+            let divisor = 2;
+
+            if (this.isOriented) {
+                divisor = 3;
+            }
+
+            this.link_labels
+                .attr("x", function (d) {
+                    let SX = Math.max(vars.r, Math.min(vars.width - vars.r, d.source.x));
+                    let TX = Math.max(vars.r, Math.min(vars.width - vars.r, d.target.x));
+
+                    return TX - ((TX - SX) / divisor);
+                })
+                .attr("y", function (d) {
+                    let SY = Math.max(vars.r, Math.min(vars.height - vars.r, d.source.y));
+                    let TY = Math.max(vars.r, Math.min(vars.height - vars.r, d.target.y));
+
+                    return TY - ((TY - SY) / divisor);
+                });
+        }
 
         this.nodes
             .attr("cx", function (d) { return d.x = Math.max(vars.r, Math.min(vars.width - vars.r, d.x)); })
