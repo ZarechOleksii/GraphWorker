@@ -1,10 +1,10 @@
 ﻿import { ReadonlyGraph } from './ReadonlyGraph.js';
 
 export class Graph extends ReadonlyGraph {
-    constructor(svg_selector, conainer_selector, data) {
+    constructor(svg_selector, conainer_selector, data, status_bar_selector) {
         super(svg_selector, conainer_selector, data);
-        this.cancel = false;
         this.selected = [];
+        this.status_bar_selector = status_bar_selector;
 
         this.add_connection_logic = this.add_connection_logic.bind(this);
         this.remove_vertex_logic = this.remove_vertex_logic.bind(this);
@@ -14,9 +14,12 @@ export class Graph extends ReadonlyGraph {
         this.dfs_logic = this.dfs_logic.bind(this);
         this.bfs_logic = this.bfs_logic.bind(this);
 
+        this.delete_conn = this.delete_conn.bind(this);
         this.select_this = this.select_this.bind(this);
         this.execute_when_one_selected = this.execute_when_one_selected.bind(this);
         this.execute_when_two_selected = this.execute_when_two_selected.bind(this);
+
+        this.set_status = this.set_status.bind(this);
     }
 
     // #region Graph changes
@@ -90,7 +93,7 @@ export class Graph extends ReadonlyGraph {
         let weight = 30;
 
         if (this.data.links.find(q => q.source.id == first_id && q.target.id == second_id) != null) {
-            document.getElementById("status").innerHTML = `<b><p>Connection from ${first_id} to ${second_id} already exists.</b ></p>`;
+            set_status(`<b><p>Connection from ${first_id} to ${second_id} already exists.</b ></p>`);
             return;
         }
 
@@ -287,7 +290,6 @@ export class Graph extends ReadonlyGraph {
             }
             text += "</ol>";
             text = `<p><b>Shortest path from vertex ${first.id} to vertex ${toWhere.id} is ${toWhere.weight} units.</b></p>` + text;
-            this.set_status(text);
 
             this.nodes
                 .filter(function (d) {
@@ -321,8 +323,8 @@ export class Graph extends ReadonlyGraph {
         }
         else {
             text = `<p><b>There is no way to get from vertex ${first.id} to vertex ${toWhere.id}.</b></p>` + text;
-            this.set_status(text);
         }
+        this.set_status(text);
     }
 
     // #endregion
@@ -486,6 +488,7 @@ export class Graph extends ReadonlyGraph {
 
     // #region Helpers
     execute_when_one_selected(func) {
+        this.enable_selection();
         if (this.selected.length === 1) {
             func(this.selected[0]);
             return true;
@@ -494,6 +497,7 @@ export class Graph extends ReadonlyGraph {
     }
 
     execute_when_two_selected(func) {
+        this.enable_selection();
         if (this.selected.length === 2) {
             func(this.selected[0], this.selected[1]);
             return true;
@@ -511,8 +515,6 @@ export class Graph extends ReadonlyGraph {
     }
 
     clear_selected() {
-        document.getElementById("cancel_button").disabled = true;
-        this.cancel = false;
         this.circles.classed("selected", false);
         this.selected = [];
 
@@ -525,6 +527,37 @@ export class Graph extends ReadonlyGraph {
         this.svg
             .selectAll(".node")
             .on("click", this.select_this);
+    }
+
+    enable_delete_link() {
+        this.svg
+            .selectAll(".line")
+            .on("click", this.delete_conn);
+    }
+
+    disable_delete_link() {
+        this.svg
+            .selectAll(".line")
+            .on("click", null);
+    }
+
+    delete_conn(event, d) {
+        this.data.links = this.data.links.filter(q => q.source.id != d.source.id && q.target.id != d.target.id);
+
+        d3.select(event.currentTarget).remove();
+
+        this.svg.selectAll(".link-text").filter(q => q.source.id == d.source.id && q.target.id == d.target.id).remove();
+
+        this.links = this.svg.selectAll(".line");
+        this.lines = this.links.select("path");
+        this.link_labels = this.svg.selectAll(".link-text");
+
+        this.simulation
+            .force("link", d3.forceLink()
+                .id(function (d) { return d.id; }).distance(120)
+                .links(this.data.links)
+            );
+        this.simulation.alpha(0.1).restart()
     }
 
     select_this(event, d) {
@@ -544,7 +577,7 @@ export class Graph extends ReadonlyGraph {
     }
 
     set_status(text) {
-        document.getElementById("status").innerHTML = text;
+        $(this.status_bar_selector)[0].innerHTML = text;
     }
 
     // #endregion

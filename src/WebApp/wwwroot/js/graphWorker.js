@@ -135,12 +135,19 @@ let data = {
     ]
 };
 
-let graph = new Graph('#graph', '.graph-container', data);
+let graph = new Graph('#graph', '.graph-container', data, '#status');
+let deleting = false;
+let cancel_add_con = true;
+let cancel_rem_ver = true;
+let cancel_dijkstra = true;
+let cancel_dfs = true;
+let cancel_bfs = true;
+let cancel_button = document.getElementById("cancel_button");
 
 // #region Upper buttons
 
 window.cancel_button = () => {
-    graph.cancel = true;
+    cancel_action();
     set_status("<b><p>Canceled operation.</b></p>");
 }
 
@@ -153,67 +160,62 @@ window.clear_result = () => {
 // #region Graph control buttons
 
 window.add_vertex = () => {
+    cancel_action();
+    graph.clear_result();
     graph.add_vertex();
 }
 
 window.add_connection = async (this_button) => {
-    this_button.style.backgroundColor = "lightgreen";
-    graph.clear_selected();
-    graph.clear_result();
-    document.getElementById("cancel_button").disabled = false;
-    graph.enable_selection();
-    document.getElementById("status").innerHTML = `<b><p>Select two points (connecting from first to second).</b></p>`;
+    selected_action(this_button, async function () {
+        cancel_add_con = false;
+        set_status(`<b><p>Select two points (connecting from first to second).</b></p>`);
 
-    const someTimeoutAction = () => {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                resolve(graph.execute_when_two_selected);
-            }, 1000);
-        });
-    };
+        do {
+            let status = await wait_for(graph.execute_when_two_selected);
 
-    do {
-        let status = await someTimeoutAction();
-
-        if (status(graph.add_connection_logic) === true) {
-            break;
+            if (status(graph.add_connection_logic) === true) {
+                break;
+            }
         }
-    }
-    while (!graph.cancel)
-    graph.clear_selected()
-    this_button.style.backgroundColor = "white";
+        while (!cancel_add_con);
+        cancel_add_con = true;
+    });
 }
 
 window.remove_vertex = async (this_button) => {
-    this_button.style.backgroundColor = "lightgreen";
-    graph.clear_selected();
-    graph.clear_result();
-    document.getElementById("cancel_button").disabled = false;
-    graph.enable_selection();
+    selected_action(this_button, async function () {
+        cancel_rem_ver = false;
+        set_status(`<b><p>Select vertex to remove</b></p>`);
 
-    document.getElementById("status").innerHTML = `<b><p>Select vertex to remove</b></p>`;
+        do {
+            let status = await wait_for(graph.execute_when_one_selected);
 
-    const someTimeoutAction = () => {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                resolve(graph.execute_when_one_selected);
-            }, 1000);
-        });
-    };
-
-    do {
-        let status = await someTimeoutAction();
-
-        if (status(graph.remove_vertex_logic) === true) {
-            break;
+            if (status(graph.remove_vertex_logic) === true) {
+                break;
+            }
         }
+        while (!cancel_rem_ver);
+        cancel_rem_ver = true;
+    });
+}
+
+window.remove_connection = async (this_button) => {
+    deleting = !deleting;
+
+    if (deleting) {
+        this_button.style.backgroundColor = "lightgreen";
+        graph.enable_delete_link();
+        this_button.innerText = "Stop deleting"
     }
-    while (!graph.cancel)
-    graph.clear_selected()
-    this_button.style.backgroundColor = "white";
+    else {
+        this_button.style.backgroundColor = "white";
+        graph.disable_delete_link();
+        this_button.innerText = "Remove connection"
+    }
 }
 
 window.clear_graph = () => {
+    cancel_action();
     graph.clear_graph();
 }
 
@@ -336,31 +338,20 @@ window.edges_list_info = () => {
 // #region Shortest path buttons
 
 window.dijkstra = async (this_button) => {
-    this_button.style.backgroundColor = "lightgreen";
-    graph.clear_selected();
-    graph.clear_result();
-    document.getElementById("cancel_button").disabled = false;
-    graph.enable_selection();
-    document.getElementById("status").innerHTML = `<b><p>Select two points (shortest path from first to second).</b></p>`;
+    selected_action(this_button, async function () {
+        cancel_dijkstra = false;
+        set_status(`<b><p>Select two points (shortest path from first to second).</b></p>`);
 
-    const someTimeoutAction = () => {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                resolve(graph.execute_when_two_selected);
-            }, 1000);
-        });
-    };
+        do {
+            let status = await wait_for(graph.execute_when_two_selected);
 
-    do {
-        let status = await someTimeoutAction();
-
-        if (status(graph.dijkstra_logic) === true) {
-            break;
+            if (status(graph.dijkstra_logic) === true) {
+                break;
+            }
         }
-    }
-    while (!graph.cancel)
-    graph.clear_selected()
-    this_button.style.backgroundColor = "white";
+        while (!cancel_dijkstra);
+        cancel_dijkstra = true;
+    });
 }
 
 window.floyd = () => {
@@ -392,64 +383,76 @@ window.floyd = () => {
 // #region Search buttons
 
 window.breadth_first_search = async (this_button) => {
-    this_button.style.backgroundColor = "lightgreen";
-    graph.clear_selected();
-    graph.clear_result();
-    document.getElementById("cancel_button").disabled = false;
-    graph.enable_selection();
-    set_status(`<b><p>Select starting point:</b></p>`);
+    selected_action(this_button, async function () {
+        cancel_bfs = false;
+        set_status(`<b><p>Select starting point:</b></p>`);
 
-    const someTimeoutAction = () => {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                resolve(graph.execute_when_one_selected);
-            }, 1000);
-        });
-    };
+        do {
+            let status = await wait_for(graph.execute_when_one_selected);
 
-    do {
-        let status = await someTimeoutAction();
-
-        if (status(graph.bfs_logic) === true) {
-            break;
+            if (status(graph.bfs_logic) === true) {
+                break;
+            }
         }
-    }
-    while (!graph.cancel)
-    graph.clear_selected()
-    this_button.style.backgroundColor = "white";
+        while (!cancel_bfs);
+        cancel_bfs = true;
+    });
 }
 
 window.depth_first_search = async (this_button) => {
-    this_button.style.backgroundColor = "lightgreen";
-    graph.clear_selected();
-    graph.clear_result();
-    document.getElementById("cancel_button").disabled = false;
-    graph.enable_selection();
-    document.getElementById("status").innerHTML = `<b><p>Select starting point:</b></p>`;
+    selected_action(this_button, async function () {
+        cancel_dfs = false;
+        set_status(`<b><p>Select starting point:</b></p>`);
 
-    const someTimeoutAction = () => {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                resolve(graph.execute_when_one_selected);
-            }, 1000);
-        });
-    };
+        do {
+            let status = await wait_for(graph.execute_when_one_selected);
 
-    do {
-        let status = await someTimeoutAction();
-
-        if (status(graph.dfs_logic) === true) {
-            break;
+            if (status(graph.dfs_logic) === true) {
+                break;
+            }
         }
-    }
-    while (!graph.cancel)
-    graph.clear_selected()
-    this_button.style.backgroundColor = "white";
+        while (!cancel_dfs);
+        cancel_dfs = true;
+    });
 }
 
 // #endregion
 
 // #region Helper functions
+
+async function selected_action(button, action) {
+    cancel_action();
+    graph.clear_result();
+    button.style.backgroundColor = "lightgreen";
+    cancel_button.disabled = false;
+    graph.enable_selection();
+
+    await action();
+
+    graph.clear_selected();
+    button.style.backgroundColor = "white";
+
+    if (cancel_add_con && cancel_rem_ver && cancel_dijkstra && cancel_bfs && cancel_dfs) {
+        cancel_button.disabled = true;
+    }
+}
+
+function cancel_action() {
+    cancel_add_con = true;
+    cancel_rem_ver = true;
+    cancel_dijkstra = true;
+    cancel_dfs = true;
+    cancel_bfs = true;
+    graph.clear_selected();
+}
+
+async function wait_for(action) {
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            resolve(action);
+        }, 100);
+    });
+}
 
 function set_status(text) {
     document.getElementById("status").innerHTML = text;
