@@ -8,7 +8,16 @@
         this.ticked = this.ticked.bind(this);
         this.click = this.click.bind(this);
         this.resize = this.resize.bind(this);
-        
+
+        if (!this.isOriented) {
+
+            let i = 0;
+            while (i < data.links.length) {
+                data.links = data.links.filter(q => q.source != data.links[i].target || q.target != data.links[i].source);
+                i++;
+            }
+        }
+
         this.data = data;
         this.graph = $(svg_selector)[0];
         this.width = this.graph.clientWidth;

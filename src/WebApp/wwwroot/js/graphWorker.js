@@ -135,7 +135,7 @@ let data = {
     ]
 };
 
-let graph = new Graph('#graph', '.graph-container', data, '#status', false, true);
+let graph = new Graph('#graph', '.graph-container', data, '#status', true, true);
 let deleting = false;
 let cancel_add_con = true;
 let cancel_rem_ver = true;
@@ -261,7 +261,12 @@ window.incidence_matrix_info = () => {
     for (let i = 0; i < sorted_nodes_copy.length; i++) {
         for (let j = 0; j < sorted_links_copy.length; j++) {
             if (sorted_links_copy[j].source.id == sorted_nodes_copy[i].id) {
-                matrix[i][j] = -1;
+                if (graph.isOriented) {
+                    matrix[i][j] = -1;
+                }
+                else {
+                    matrix[i][j] = 1;
+                }
             }
             else if (sorted_links_copy[j].target.id == sorted_nodes_copy[i].id) {
                 matrix[i][j] = 1;
@@ -292,9 +297,19 @@ window.weighted_matrix_info = () => {
 }
 
 window.adjacency_lists_info = () => {
+    let starting_data = [...graph.data.links];
+
+    if (!graph.isOriented) {
+        starting_data = starting_data.concat([...graph.data.links].map(q => ({
+            source: q.target,
+            target: q.source,
+            weight: q.weight
+        })));
+    }
+
     let result = "<p><b>Adjacency lists:</b></p>";
     let sorted_nodes_copy = [...graph.data.nodes].sort((a, b) => a.id - b.id);
-    let sorted_links_copy = [...graph.data.links].sort((a, b) => {
+    let sorted_links_copy = starting_data.sort((a, b) => {
         if (a.source.id != b.source.id)
             return a.source.id - b.source.id;
         return a.target.id - b.target.id;
@@ -317,7 +332,18 @@ window.adjacency_lists_info = () => {
 }
 
 window.edges_list_info = () => {
-    let sorted_links_copy = [...graph.data.links].sort((a, b) => {
+    let starting_data = [...graph.data.links];
+
+    /*
+    if (!graph.isOriented) {
+        starting_data = starting_data.concat([...graph.data.links].map(q => ({
+            source: q.target,
+            target: q.source,
+            weight: q.weight
+        })));
+    }*/
+
+    let sorted_links_copy = starting_data.sort((a, b) => {
         if (a.source.id != b.source.id)
             return a.source.id - b.source.id;
         return a.target.id - b.target.id;
@@ -482,8 +508,12 @@ function get_weighted_matrix(sorted_nodes) {
 
     for (let i = 0; i < size; i++) {
         for (let j = 0; j < size; j++) {
-            if (data.links.some(q => q.source.id == sorted_nodes[i].id && q.target.id == sorted_nodes[j].id)) {
-                matrix[i][j] = data.links.find(q => q.source.id == sorted_nodes[i].id && q.target.id == sorted_nodes[j].id).weight;
+            if (graph.data.links.some(q => q.source.id == sorted_nodes[i].id && q.target.id == sorted_nodes[j].id)) {
+                matrix[i][j] = graph.data.links.find(q => q.source.id == sorted_nodes[i].id && q.target.id == sorted_nodes[j].id).weight;
+
+                if (!graph.isOriented) {
+                    matrix[j][i] = graph.data.links.find(q => q.source.id == sorted_nodes[i].id && q.target.id == sorted_nodes[j].id).weight;
+                }
             }
         }
     }

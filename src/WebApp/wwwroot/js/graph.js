@@ -100,7 +100,11 @@ export class Graph extends ReadonlyGraph {
         let weight = 30;
 
         if (this.data.links.find(q => q.source.id == first_id && q.target.id == second_id) != null) {
-            set_status(`<b><p>Connection from ${first_id} to ${second_id} already exists.</b ></p>`);
+            this.set_status(`<b><p>Connection from ${first_id} to ${second_id} already exists.</b ></p>`);
+            return;
+        }
+        else if (!this.isOriented && this.data.links.find(q => q.target.id == first_id && q.source.id == second_id) != null) {
+            this.set_status(`<b><p>Connection from ${first_id} to ${second_id} already exists.</b ></p>`);
             return;
         }
 
@@ -239,15 +243,37 @@ export class Graph extends ReadonlyGraph {
     // #region Shortest path algorithms
 
     dijkstra_logic(first_id, second_id) {
+        let vars = this;
+        let dataAlgo;
 
-        let dataAlgo = this.data.nodes.map(node => ({
-            id: node.id,
-            passed: false,
-            weight: Infinity,
-            name: node.name,
-            connections: this.data.links.filter(link => link.source.id == node.id),
-            pathing: []
-        }));
+        if (this.isOriented) {
+            dataAlgo = this.data.nodes.map(node => ({
+                id: node.id,
+                passed: false,
+                weight: Infinity,
+                name: node.name,
+                connections: this.data.links.filter(link => link.source.id == node.id),
+                pathing: []
+            }));
+        }
+        else {
+            dataAlgo = this.data.nodes.map(node => {
+                let connection_copy = [...this.data.links.filter(link => link.target.id == node.id)].map(link => ({
+                    target: link.source,
+                    source: link.target,
+                    weight: link.weight
+                }));
+
+                return ({
+                    id: node.id,
+                    passed: false,
+                    weight: Infinity,
+                    name: node.name,
+                    connections: this.data.links.filter(link => link.source.id == node.id).concat(connection_copy),
+                    pathing: []
+                });
+            });
+        }
 
         let first = dataAlgo.find(node => node.id == first_id);
         let current = first;
@@ -294,6 +320,11 @@ export class Graph extends ReadonlyGraph {
             text += "<p>Entire path summary:</p><ol>";
             for (let i = 0; i < toWhere.pathing.length - 1; i++) {
                 let conn = this.data.links.find(link => link.source.id == toWhere.pathing[i] && link.target.id == toWhere.pathing[i + 1]);
+
+                if (conn === undefined && !this.isOriented) {
+                    conn = this.data.links.find(link => link.target.id == toWhere.pathing[i] && link.source.id == toWhere.pathing[i + 1]);
+                }
+
                 text += `<li>From ${toWhere.pathing[i]} to ${toWhere.pathing[i + 1]}: ${currWeight} + ${conn.weight} = ${currWeight += conn.weight}</li>`;
             }
             text += "</ol>";
@@ -312,6 +343,9 @@ export class Graph extends ReadonlyGraph {
                         if (d.source.id == toWhere.pathing[i] && d.target.id == toWhere.pathing[i + 1]) {
                             return true;
                         }
+                        else if (!vars.isOriented && d.target.id == toWhere.pathing[i] && d.source.id == toWhere.pathing[i + 1]) {
+                            return true;
+                        }
                     }
                     return false;
                 })
@@ -322,6 +356,9 @@ export class Graph extends ReadonlyGraph {
                 .filter(function (d) {
                     for (let i = 0; i < toWhere.pathing.length - 1; i++) {
                         if (d.source.id == toWhere.pathing[i] && d.target.id == toWhere.pathing[i + 1]) {
+                            return false;
+                        }
+                        else if (!vars.isOriented && d.target.id == toWhere.pathing[i] && d.source.id == toWhere.pathing[i + 1]) {
                             return false;
                         }
                     }
@@ -345,14 +382,25 @@ export class Graph extends ReadonlyGraph {
     // #region Search algorithms
 
     dfs_logic(selected_id) {
+        let vars = this;
         let result = "<p><b>DFS:</b></p><table class=\"matrix-table\"><tr><th>Vertex</th><th>DFS-Number</th><th>Stack</th></tr>";
         let passed = [selected_id];
         let stack = [selected_id];
         let to_mark = [];
         let number = 1;
 
+        let starting_data = [...this.data.links];
+
+        if (!graph.isOriented) {
+            starting_data = starting_data.concat([...this.data.links].map(q => ({
+                source: q.target,
+                target: q.source,
+                weight: q.weight
+            })));
+        }
+
         let sorted_copy = [...this.data.nodes].sort((a, b) => a.id - b.id);
-        let sorted_links_copy = [...this.data.links].sort((a, b) => {
+        let sorted_links_copy = starting_data.sort((a, b) => {
             if (a.source.id != b.source.id)
                 return a.source.id - b.source.id;
             return a.target.id - b.target.id;
@@ -404,6 +452,9 @@ export class Graph extends ReadonlyGraph {
                 if (to_mark.filter(w => w.target.id == q.target.id && w.source.id == q.source.id).length == 1) {
                     return true;
                 }
+                else if (!vars.isOriented && to_mark.filter(w => w.target.id == q.source.id && w.source.id == q.target.id).length == 1) {
+                    return true;
+                }
                 return false;
             })
             .style("stroke", "red");
@@ -411,6 +462,9 @@ export class Graph extends ReadonlyGraph {
         this.lines
             .filter(function (q) {
                 if (to_mark.filter(w => w.target.id == q.target.id && w.source.id == q.source.id).length == 1) {
+                    return false;
+                }
+                else if (!vars.isOriented && to_mark.filter(w => w.target.id == q.source.id && w.source.id == q.target.id).length == 1) {
                     return false;
                 }
                 return true;
@@ -421,14 +475,25 @@ export class Graph extends ReadonlyGraph {
     }
 
     bfs_logic(selected_id) {
+        let vars = this;
         let result = "<p><b>BFS:</b></p><table class=\"matrix-table\"><tr><th>Vertex</th><th>BFS-Number</th><th>Queue</th></tr>";
         let passed = [selected_id];
         let queue = [selected_id];
         let to_mark = [];
         let number = 1;
 
+        let starting_data = [...this.data.links];
+
+        if (!graph.isOriented) {
+            starting_data = starting_data.concat([...this.data.links].map(q => ({
+                source: q.target,
+                target: q.source,
+                weight: q.weight
+            })));
+        }
+
         let sorted_copy = [...this.data.nodes].sort((a, b) => a.id - b.id);
-        let sorted_links_copy = [...this.data.links].sort((a, b) => {
+        let sorted_links_copy = starting_data.sort((a, b) => {
             if (a.source.id != b.source.id)
                 return a.source.id - b.source.id;
             return a.target.id - b.target.id;
@@ -481,6 +546,9 @@ export class Graph extends ReadonlyGraph {
                 if (to_mark.filter(w => w.target.id == q.target.id && w.source.id == q.source.id).length == 1) {
                     return true;
                 }
+                else if (!vars.isOriented && to_mark.filter(w => w.target.id == q.source.id && w.source.id == q.target.id).length == 1) {
+                    return true;
+                }
                 return false;
             })
             .style("stroke", "red");
@@ -488,6 +556,9 @@ export class Graph extends ReadonlyGraph {
         this.lines
             .filter(function (q) {
                 if (to_mark.filter(w => w.target.id == q.target.id && w.source.id == q.source.id).length == 1) {
+                    return false;
+                }
+                else if (!vars.isOriented && to_mark.filter(w => w.target.id == q.source.id && w.source.id == q.target.id).length == 1) {
                     return false;
                 }
                 return true;
