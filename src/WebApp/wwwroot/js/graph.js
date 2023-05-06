@@ -391,7 +391,7 @@ export class Graph extends ReadonlyGraph {
 
         let starting_data = [...this.data.links];
 
-        if (!graph.isOriented) {
+        if (!this.isOriented) {
             starting_data = starting_data.concat([...this.data.links].map(q => ({
                 source: q.target,
                 target: q.source,
@@ -484,7 +484,7 @@ export class Graph extends ReadonlyGraph {
 
         let starting_data = [...this.data.links];
 
-        if (!graph.isOriented) {
+        if (!this.isOriented) {
             starting_data = starting_data.concat([...this.data.links].map(q => ({
                 source: q.target,
                 target: q.source,
