@@ -319,11 +319,20 @@ window.adjacency_lists_info = () => {
         result += "<div class=\"list\">";
         result += `<div class="smallbox">${sorted_nodes_copy[i].id}</div>`;
 
-        sorted_links_copy
-            .filter(q => q.source.id == sorted_nodes_copy[i].id)
-            .forEach(q => {
-                result += `<img src="/images/svg/arrow-right.svg" alt="arrow" style="width:60px"/><div class="microbox">ID:${q.target.id}</div><div class="microbox">${q.weight}</div>`;
-            });
+        if (graph.isWeighted) {
+            sorted_links_copy
+                .filter(q => q.source.id == sorted_nodes_copy[i].id)
+                .forEach(q => {
+                    result += `<img src="/images/svg/arrow-right.svg" alt="arrow" style="width:60px"/><div class="microbox">ID:${q.target.id}</div><div class="microbox">${q.weight}</div>`;
+                });
+        }
+        else {
+            sorted_links_copy
+                .filter(q => q.source.id == sorted_nodes_copy[i].id)
+                .forEach(q => {
+                    result += `<img src="/images/svg/arrow-right.svg" alt="arrow" style="width:60px"/><div class="microbox">ID:${q.target.id}</div>`;
+                });
+        }
 
         result += "</div>";
     };
@@ -349,11 +358,24 @@ window.edges_list_info = () => {
         return a.target.id - b.target.id;
     });
 
-    let text = "<p><b>Edges list:</b></p><table class=\"matrix-table\"><tr><th>From</th><th>To</th><th>Weight</th></tr>";
+    let text;
+    if (graph.isWeighted) {
+        text = "<p><b>Edges list:</b></p><table class=\"matrix-table\"><tr><th>From</th><th>To</th><th>Weight</th></tr>";
+    }
+    else {
+        text = "<p><b>Edges list:</b></p><table class=\"matrix-table\"><tr><th>From</th><th>To</th></tr>";
+    }
 
-    sorted_links_copy.forEach(q => {
-        text += `<tr><td>${q.source.id}</td><td>${q.target.id}</td><td>${q.weight}</td></tr>`;
-    });
+    if (graph.isWeighted) {
+        sorted_links_copy.forEach(q => {
+            text += `<tr><td>${q.source.id}</td><td>${q.target.id}</td><td>${q.weight}</td></tr>`;
+        });
+    }
+    else {
+        sorted_links_copy.forEach(q => {
+            text += `<tr><td>${q.source.id}</td><td>${q.target.id}</td></tr>`;
+        });
+    }
     text += "</table>";
 
     set_status(text);
@@ -509,10 +531,21 @@ function get_weighted_matrix(sorted_nodes) {
     for (let i = 0; i < size; i++) {
         for (let j = 0; j < size; j++) {
             if (graph.data.links.some(q => q.source.id == sorted_nodes[i].id && q.target.id == sorted_nodes[j].id)) {
-                matrix[i][j] = graph.data.links.find(q => q.source.id == sorted_nodes[i].id && q.target.id == sorted_nodes[j].id).weight;
+                if (graph.isWeighted) {
+                    matrix[i][j] = graph.data.links.find(q => q.source.id == sorted_nodes[i].id && q.target.id == sorted_nodes[j].id).weight;
 
-                if (!graph.isOriented) {
-                    matrix[j][i] = graph.data.links.find(q => q.source.id == sorted_nodes[i].id && q.target.id == sorted_nodes[j].id).weight;
+                    if (!graph.isOriented) {
+                        matrix[j][i] = graph.data.links.find(q => q.source.id == sorted_nodes[i].id && q.target.id == sorted_nodes[j].id).weight;
+                    }
+                }
+                else {
+                    if (graph.data.links.some(q => q.source.id == sorted_nodes[i].id && q.target.id == sorted_nodes[j].id)) {
+                        matrix[i][j] = 1;
+
+                        if (!graph.isOriented) {
+                            matrix[j][i] = 1;
+                        }
+                    }
                 }
             }
         }

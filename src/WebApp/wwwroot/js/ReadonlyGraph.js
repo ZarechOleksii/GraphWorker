@@ -88,17 +88,20 @@
             .attr("r", this.r)
             .attr("class", "circle");
 
-        this.link_labels = this.svg
-            .selectAll(".link-text")
-            .data(this.data.links)
-            .enter()
-            .append("text")
-            .attr("dy", 5)
-            .attr("text-anchor", "middle")
-            .attr("class", "link-text")
-            .text(function (d) {
-                return d.weight
-            });
+
+        if (this.isWeighted) {
+            this.link_labels = this.svg
+                .selectAll(".link-text")
+                .data(this.data.links)
+                .enter()
+                .append("text")
+                .attr("dy", 5)
+                .attr("text-anchor", "middle")
+                .attr("class", "link-text")
+                .text(function (d) {
+                    return d.weight
+                });
+        }
 
         this.labels = this.nodes
             .append("text")

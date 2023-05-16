@@ -67,18 +67,20 @@ export class Graph extends ReadonlyGraph {
             .attr("class", "circle")
             .merge(this.circles);
 
-        this.link_labels = this.svg
-            .selectAll("link-text")
-            .data(this.data.links)
-            .enter()
-            .append("text")
-            .attr("dy", 5)
-            .attr("text-anchor", "middle")
-            .attr("class", "link-text")
-            .on("click", this.change_weight)
-            .text(function (d) {
-                return d.weight
-            });
+        if (this.isWeighted) {
+            this.link_labels = this.svg
+                .selectAll("link-text")
+                .data(this.data.links)
+                .enter()
+                .append("text")
+                .attr("dy", 5)
+                .attr("text-anchor", "middle")
+                .attr("class", "link-text")
+                .on("click", this.change_weight)
+                .text(function (d) {
+                    return d.weight
+                });
+        }
 
         this.labels = new_node
             .append("text")
@@ -167,19 +169,21 @@ export class Graph extends ReadonlyGraph {
             .select("circle")
             .classed("fixed", true);
 
-        this.link_labels = this.svg
-            .selectAll("link-text")
-            .data(this.data.links)
-            .enter()
-            .append("text")
-            .attr("dy", 5)
-            .attr("text-anchor", "middle")
-            .attr("class", "link-text")
-            .on("click", this.change_weight)
-            .text(function (d) {
-                return d.weight
-            })
-            .merge(this.link_labels);
+        if (this.isWeighted) {
+            this.link_labels = this.svg
+                .selectAll("link-text")
+                .data(this.data.links)
+                .enter()
+                .append("text")
+                .attr("dy", 5)
+                .attr("text-anchor", "middle")
+                .attr("class", "link-text")
+                .on("click", this.change_weight)
+                .text(function (d) {
+                    return d.weight
+                })
+                .merge(this.link_labels);
+        }
 
         this.labels = this.nodes
             .append("text")
@@ -210,8 +214,10 @@ export class Graph extends ReadonlyGraph {
         this.svg.selectAll(".node").filter(d => d.id == selected_id).remove();
         this.nodes = this.svg.selectAll(".node");
         this.circles = this.nodes.select("circle");
-        this.svg.selectAll(".link-text").filter(q => q.source.id == selected_id || q.target.id == selected_id).remove();
-        this.link_labels = this.svg.selectAll(".link-text");
+        if (this.isWeighted) {
+            this.svg.selectAll(".link-text").filter(q => q.source.id == selected_id || q.target.id == selected_id).remove();
+            this.link_labels = this.svg.selectAll(".link-text");
+        }
         this.labels = this.nodes.select("text");
 
         this.simulation.nodes(this.data.nodes)
@@ -229,8 +235,11 @@ export class Graph extends ReadonlyGraph {
         this.svg.selectAll(".node").remove();
         this.nodes = this.svg.selectAll(".node");
         this.circles = this.nodes.select("circle");
-        this.svg.selectAll(".link-text").remove();
-        this.link_labels = this.svg.selectAll(".link-text");
+
+        if (this.isWeighted) {
+            this.svg.selectAll(".link-text").remove();
+            this.link_labels = this.svg.selectAll(".link-text");
+        }
         this.labels = this.nodes.select("text");
 
         this.simulation.nodes(this.data.nodes)
@@ -288,11 +297,21 @@ export class Graph extends ReadonlyGraph {
                 let secondPoint = dataAlgo.find(node => node.id == con.target.id);
 
                 if (!secondPoint.passed) {
-                    if (secondPoint.weight > current.weight + con.weight) {
-                        text += `<li>Setting new weight for ${secondPoint.id}: from ${secondPoint.weight} to ${current.weight} + ${con.weight} = ${current.weight + con.weight}</li>`
-                        secondPoint.weight = current.weight + con.weight;
-                        secondPoint.pathing = Array.from(current.pathing);
-                        secondPoint.pathing.push(current.id);
+                    if (vars.isWeighted) {
+                        if (secondPoint.weight > current.weight + con.weight) {
+                            text += `<li>Setting new weight for ${secondPoint.id}: from ${secondPoint.weight} to ${current.weight} + ${con.weight} = ${current.weight + con.weight}</li>`
+                            secondPoint.weight = current.weight + con.weight;
+                            secondPoint.pathing = Array.from(current.pathing);
+                            secondPoint.pathing.push(current.id);
+                        }
+                    }
+                    else {
+                        if (secondPoint.weight > current.weight + 1) {
+                            text += `<li>Setting new weight for ${secondPoint.id}: from ${secondPoint.weight} to ${current.weight} + ${1} = ${current.weight + 1}</li>`
+                            secondPoint.weight = current.weight + 1;
+                            secondPoint.pathing = Array.from(current.pathing);
+                            secondPoint.pathing.push(current.id);
+                        }
                     }
                 }
             });
@@ -325,7 +344,12 @@ export class Graph extends ReadonlyGraph {
                     conn = this.data.links.find(link => link.target.id == toWhere.pathing[i] && link.source.id == toWhere.pathing[i + 1]);
                 }
 
-                text += `<li>From ${toWhere.pathing[i]} to ${toWhere.pathing[i + 1]}: ${currWeight} + ${conn.weight} = ${currWeight += conn.weight}</li>`;
+                if (vars.isWeighted) {
+                    text += `<li>From ${toWhere.pathing[i]} to ${toWhere.pathing[i + 1]}: ${currWeight} + ${conn.weight} = ${currWeight += conn.weight}</li>`;
+                }
+                else {
+                    text += `<li>From ${toWhere.pathing[i]} to ${toWhere.pathing[i + 1]}: ${currWeight} + 1 = ${currWeight += 1}</li>`;
+                }
             }
             text += "</ol>";
             text = `<p><b>Shortest path from vertex ${first.id} to vertex ${toWhere.id} is ${toWhere.weight} units.</b></p>` + text;
@@ -643,11 +667,11 @@ export class Graph extends ReadonlyGraph {
     }
 
     delete_conn(event, d) {
-        this.data.links = this.data.links.filter(q => q.source.id != d.source.id && q.target.id != d.target.id);
+        this.data.links = this.data.links.filter(q => q.source.id != d.source.id || q.target.id != d.target.id);
 
         d3.select(event.currentTarget).remove();
 
-        this.svg.selectAll(".link-text").filter(q => q.source.id == d.source.id && q.target.id == d.target.id).remove();
+        this.svg.selectAll(".link-text").filter(q => q.source.id == d.source.id || q.target.id == d.target.id).remove();
 
         this.links = this.svg.selectAll(".line");
         this.lines = this.links.select("path");
