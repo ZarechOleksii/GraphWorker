@@ -9,13 +9,13 @@
     <link rel="stylesheet" href="~/WebApp.styles.css" asp-append-version="true" />
 
     <!-- HTML Meta Tags -->
-    <meta name="description" content="GraphCreator allows you to create, edit and experiment with discrete math graphs.">
+    <meta name="description" content="@ViewData["Description"]">
 
     <!-- Facebook Meta Tags -->
     <meta property="og:url" content="https://graphcreator.azurewebsites.net">
     <meta property="og:type" content="website">
     <meta property="og:title" content="GraphCreator">
-    <meta property="og:description" content="GraphCreator allows you to create, edit and experiment with discrete mathematical graphs. ">
+    <meta property="og:description" content="@ViewData["Description"]">
     <meta property="og:image" content=@Url.Content("~/images/previewImage.png")>
 
     <!-- Twitter Meta Tags -->
@@ -23,11 +23,11 @@
     <meta property="twitter:domain" content="graphcreator.azurewebsites.net">
     <meta property="twitter:url" content="https://graphcreator.azurewebsites.net">
     <meta name="twitter:title" content="GraphCreator">
-    <meta name="twitter:description" content="GraphCreator allows you to create, edit and experiment with discrete mathematical graphs. ">
+    <meta name="twitter:description" content="@ViewData["Description"]">
     <meta name="twitter:image" content=@Url.Content("~/images/previewImage.png")>
     <!-- Meta Tags Generated via https://www.opengraph.xyz -->
 
-    <meta name="google-site-verification" content="bD3OaRNT6jAm17sCw77qwXlM9ges1tpaV7T_b-B0m2Q" />
+    <meta name="google-site-verification" content="@ViewData["GoogleId"]" />
 </head>
 <body>
     <header>
