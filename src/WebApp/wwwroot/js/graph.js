@@ -671,7 +671,7 @@ export class Graph extends ReadonlyGraph {
 
         d3.select(event.currentTarget).remove();
 
-        this.svg.selectAll(".link-text").filter(q => q.source.id == d.source.id || q.target.id == d.target.id).remove();
+        this.svg.selectAll(".link-text").filter(q => q.source.id == d.source.id && q.target.id == d.target.id).remove();
 
         this.links = this.svg.selectAll(".line");
         this.lines = this.links.select("path");
